@@ -13,7 +13,7 @@ import UserManagement from "./components/UserManagement";
 const queryClient = new QueryClient();
 
 const AppContent = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
 
   if (!isAuthenticated) {
     return <LoginPage />;
@@ -40,7 +40,7 @@ const AppContent = () => {
                   Connecté en tant que <strong>{user.username}</strong>
                 </span>
                 <button
-                  onClick={() => window.location.reload()}
+                  onClick={logout}
                   className="text-sm text-blue-600 hover:text-blue-700"
                 >
                   Déconnexion

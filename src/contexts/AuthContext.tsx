@@ -94,6 +94,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     setUser(null);
+    localStorage.removeItem('quantro_current_user');
   };
 
   const createUser = (userData: {
