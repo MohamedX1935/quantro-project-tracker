@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,9 +13,9 @@ import CreateProjectDialog from "@/components/CreateProjectDialog";
 import EmployeeTasks from "@/components/EmployeeTasks";
 
 const Index = () => {
+  const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState(user?.role === 'admin' ? "dashboard" : "tasks");
   const [showCreateProject, setShowCreateProject] = useState(false);
-  const { user, logout } = useAuth();
 
   // Interface pour les employés
   if (user?.role === 'employee') {
