@@ -1,11 +1,11 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { BarChart3, Users, Calendar, MapPin, Plus, Settings } from "lucide-react";
+import { BarChart3, Users, Calendar, MapPin, Plus, Settings, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import ProjectsOverview from "@/components/ProjectsOverview";
 import TasksManager from "@/components/TasksManager";
 import TeamDashboard from "@/components/TeamDashboard";
@@ -14,6 +14,7 @@ import CreateProjectDialog from "@/components/CreateProjectDialog";
 const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [showCreateProject, setShowCreateProject] = useState(false);
+  const { user, logout } = useAuth();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
@@ -31,16 +32,35 @@ const Index = () => {
             </div>
             
             <div className="flex items-center space-x-4">
-              <Button
-                onClick={() => setShowCreateProject(true)}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-200"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Nouveau Projet
-              </Button>
+              {user?.role === 'admin' && (
+                <Button
+                  onClick={() => setShowCreateProject(true)}
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-200"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nouveau Projet
+                </Button>
+              )}
               
               <Button variant="ghost" size="icon" className="text-slate-600 hover:bg-slate-100">
                 <Settings className="w-5 h-5" />
+              </Button>
+
+              <div className="flex items-center space-x-2 text-sm text-slate-600">
+                <span>Connecté en tant que <strong>{user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.username}</strong></span>
+                <Badge variant={user?.role === 'admin' ? 'default' : 'secondary'}>
+                  {user?.role === 'admin' ? 'Admin' : 'Employé'}
+                </Badge>
+              </div>
+
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={logout}
+                className="text-slate-600 hover:bg-slate-100"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Déconnexion
               </Button>
             </div>
           </div>
@@ -202,10 +222,12 @@ const Index = () => {
         </Tabs>
       </main>
 
-      <CreateProjectDialog 
-        open={showCreateProject}
-        onOpenChange={setShowCreateProject}
-      />
+      {user?.role === 'admin' && (
+        <CreateProjectDialog 
+          open={showCreateProject}
+          onOpenChange={setShowCreateProject}
+        />
+      )}
     </div>
   );
 };
