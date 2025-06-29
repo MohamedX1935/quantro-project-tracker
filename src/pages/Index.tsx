@@ -1,21 +1,69 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { BarChart3, Users, Calendar, MapPin, Plus, Settings, LogOut } from "lucide-react";
+import { BarChart3, Users, Calendar, MapPin, Plus, Settings, LogOut, CheckSquare, FileText } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import ProjectsOverview from "@/components/ProjectsOverview";
 import TasksManager from "@/components/TasksManager";
 import TeamDashboard from "@/components/TeamDashboard";
 import CreateProjectDialog from "@/components/CreateProjectDialog";
+import EmployeeTasks from "@/components/EmployeeTasks";
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState(user?.role === 'admin' ? "dashboard" : "tasks");
   const [showCreateProject, setShowCreateProject] = useState(false);
   const { user, logout } = useAuth();
 
+  // Interface pour les employés
+  if (user?.role === 'employee') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        {/* Header pour employé */}
+        <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center space-x-4">
+                <div className="w-8 h-8 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg flex items-center justify-center">
+                  <CheckSquare className="w-5 h-5 text-white" />
+                </div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                  Quantro - Mes Tâches
+                </h1>
+              </div>
+              
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2 text-sm text-slate-600">
+                  <span>Connecté en tant que <strong>{user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.username}</strong></span>
+                  <Badge variant="secondary">Employé</Badge>
+                </div>
+
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={logout}
+                  className="text-slate-600 hover:bg-slate-100"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Déconnexion
+                </Button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Interface employé */}
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <EmployeeTasks />
+        </main>
+      </div>
+    );
+  }
+
+  // Interface pour les administrateurs
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Header */}
@@ -27,20 +75,18 @@ const Index = () => {
                 <BarChart3 className="w-5 h-5 text-white" />
               </div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                Quantro
+                Quantro - Administration
               </h1>
             </div>
             
             <div className="flex items-center space-x-4">
-              {user?.role === 'admin' && (
-                <Button
-                  onClick={() => setShowCreateProject(true)}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-200"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nouveau Projet
-                </Button>
-              )}
+              <Button
+                onClick={() => setShowCreateProject(true)}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-200"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Nouveau Projet
+              </Button>
               
               <Button variant="ghost" size="icon" className="text-slate-600 hover:bg-slate-100">
                 <Settings className="w-5 h-5" />
@@ -48,9 +94,7 @@ const Index = () => {
 
               <div className="flex items-center space-x-2 text-sm text-slate-600">
                 <span>Connecté en tant que <strong>{user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.username}</strong></span>
-                <Badge variant={user?.role === 'admin' ? 'default' : 'secondary'}>
-                  {user?.role === 'admin' ? 'Admin' : 'Employé'}
-                </Badge>
+                <Badge variant="default">Admin</Badge>
               </div>
 
               <Button 
@@ -67,10 +111,10 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main Content pour admin */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 bg-white/60 backdrop-blur-sm border border-slate-200 shadow-sm">
+          <TabsList className="grid w-full grid-cols-4 bg-white/60 backdrop-blur-sm border border-slate-200 shadow-sm">
             <TabsTrigger 
               value="dashboard" 
               className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
@@ -84,6 +128,13 @@ const Index = () => {
             >
               <Calendar className="w-4 h-4" />
               Projets
+            </TabsTrigger>
+            <TabsTrigger 
+              value="tasks" 
+              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+            >
+              <CheckSquare className="w-4 h-4" />
+              Tâches
             </TabsTrigger>
             <TabsTrigger 
               value="team" 
@@ -216,18 +267,20 @@ const Index = () => {
             <ProjectsOverview />
           </TabsContent>
 
+          <TabsContent value="tasks">
+            <TasksManager />
+          </TabsContent>
+
           <TabsContent value="team">
             <TeamDashboard />
           </TabsContent>
         </Tabs>
       </main>
 
-      {user?.role === 'admin' && (
-        <CreateProjectDialog 
-          open={showCreateProject}
-          onOpenChange={setShowCreateProject}
-        />
-      )}
+      <CreateProjectDialog 
+        open={showCreateProject}
+        onOpenChange={setShowCreateProject}
+      />
     </div>
   );
 };
