@@ -9,7 +9,12 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { UserPlus, Users } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
-const AssignEmployeeDialog = () => {
+interface AssignEmployeeDialogProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+const AssignEmployeeDialog = ({ open, onOpenChange }: AssignEmployeeDialogProps) => {
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const [selectedProject, setSelectedProject] = useState("");
 
@@ -50,10 +55,15 @@ const AssignEmployeeDialog = () => {
     // Reset form
     setSelectedEmployee("");
     setSelectedProject("");
+    
+    // Close dialog if controlled
+    if (onOpenChange) {
+      onOpenChange(false);
+    }
   };
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
         <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
           <UserPlus className="w-4 h-4 mr-2" />
@@ -135,7 +145,7 @@ const AssignEmployeeDialog = () => {
         </div>
         
         <DialogFooter>
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => onOpenChange?.(false)}>
             Annuler
           </Button>
           <Button onClick={handleAssignEmployee}>
