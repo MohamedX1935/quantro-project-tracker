@@ -17,52 +17,7 @@ const ProjectsOverview = () => {
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [showProjectDetails, setShowProjectDetails] = useState(false);
 
-  const projects = [
-    {
-      id: 1,
-      name: "Déploiement Infrastructure Cloud",
-      description: "Migration complète vers l'infrastructure cloud avec haute disponibilité",
-      progress: 75,
-      status: "En cours",
-      deadline: "2024-08-15",
-      team: [
-        { name: "Alice Martin", role: "Chef de projet", initials: "AM" },
-        { name: "Bob Dupont", role: "DevOps", initials: "BD" },
-        { name: "Claire Rousseau", role: "Développeur", initials: "CR" },
-      ],
-      tasks: { total: 24, completed: 18 },
-      location: "Paris, France"
-    },
-    {
-      id: 2,
-      name: "Migration Base de Données",
-      description: "Modernisation et optimisation de l'architecture de données",
-      progress: 45,
-      status: "En cours",
-      deadline: "2024-07-30",
-      team: [
-        { name: "David Chen", role: "DBA", initials: "DC" },
-        { name: "Emma Wilson", role: "Analyste", initials: "EW" },
-      ],
-      tasks: { total: 16, completed: 7 },
-      location: "Lyon, France"
-    },
-    {
-      id: 3,
-      name: "Formation Utilisateurs",
-      description: "Programme de formation complet pour les nouveaux outils",
-      progress: 90,
-      status: "Presque fini",
-      deadline: "2024-07-20",
-      team: [
-        { name: "Frank Miller", role: "Formateur", initials: "FM" },
-        { name: "Grace Lee", role: "Support", initials: "GL" },
-        { name: "Henri Dubois", role: "Documentation", initials: "HD" },
-      ],
-      tasks: { total: 12, completed: 11 },
-      location: "Marseille, France"
-    },
-  ];
+  const projects: any[] = []; // Tableau vide - plus d'exemples
 
   const filteredProjects = projects.filter(project =>
     project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -153,7 +108,7 @@ const ProjectsOverview = () => {
                   Équipe ({project.team.length})
                 </div>
                 <div className="flex -space-x-2">
-                  {project.team.slice(0, 3).map((member, index) => (
+                  {project.team.slice(0, 3).map((member: any, index: number) => (
                     <Avatar key={index} className="w-8 h-8 border-2 border-white">
                       <AvatarFallback className="text-xs bg-gradient-to-r from-blue-500 to-indigo-500 text-white">
                         {member.initials}
@@ -209,8 +164,11 @@ const ProjectsOverview = () => {
             <Search className="w-8 h-8 text-slate-400" />
           </div>
           <h3 className="text-lg font-medium text-slate-900 mb-2">Aucun projet trouvé</h3>
-          <p className="text-slate-600 mb-4">Essayez de modifier vos critères de recherche</p>
-          <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
+          <p className="text-slate-600 mb-4">Commencez par créer votre premier projet</p>
+          <Button 
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+            onClick={() => setShowCreateProject(true)}
+          >
             <Plus className="w-4 h-4 mr-2" />
             Créer un nouveau projet
           </Button>

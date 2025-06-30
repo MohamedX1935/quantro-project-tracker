@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,41 +21,7 @@ const EmployeeTasks = () => {
   const [isExtensionDialogOpen, setIsExtensionDialogOpen] = useState(false);
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const [isTaskDetailsOpen, setIsTaskDetailsOpen] = useState(false);
-  const [myTasks, setMyTasks] = useState([
-    {
-      id: 1,
-      title: "Configuration du serveur de base de données",
-      description: "Installer et configurer PostgreSQL avec les paramètres de sécurité requis",
-      project: "Déploiement Infrastructure Cloud",
-      deadline: "2024-07-25",
-      status: "En cours",
-      priority: "Haute",
-      assignedBy: "Alice Martin",
-      createdAt: "2024-07-15"
-    },
-    {
-      id: 2,
-      title: "Tests de performance réseau",
-      description: "Effectuer des tests de latence et de débit sur l'infrastructure cloud",
-      project: "Déploiement Infrastructure Cloud",
-      deadline: "2024-07-22",
-      status: "À faire",
-      priority: "Moyenne",
-      assignedBy: "Alice Martin",
-      createdAt: "2024-07-16"
-    },
-    {
-      id: 3,
-      title: "Documentation technique",
-      description: "Rédiger la documentation pour les procédures de déploiement",
-      project: "Formation Utilisateurs",
-      deadline: "2024-07-28",
-      status: "En cours",
-      priority: "Normale",
-      assignedBy: "Frank Miller",
-      createdAt: "2024-07-10"
-    }
-  ]);
+  const [myTasks, setMyTasks] = useState<any[]>([]); // Tableau vide - plus d'exemples
 
   const handleCompleteTask = (task: any) => {
     setSelectedTask(task);
@@ -194,97 +161,107 @@ const EmployeeTasks = () => {
           </CardHeader>
           
           <CardContent>
-            <div className="space-y-4">
-              {myTasks.map((task) => (
-                <div key={task.id} className="p-4 bg-slate-50/50 rounded-lg border border-slate-200">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-medium text-slate-900">{task.title}</h4>
-                        <Badge className={`text-xs ${getStatusColor(task.status)}`}>
-                          {task.status}
-                        </Badge>
-                        <span className={`text-xs font-medium ${getPriorityColor(task.priority)}`}>
-                          {task.priority}
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-600 mb-2">{task.description}</p>
-                      <div className="flex items-center gap-4 text-xs text-slate-500">
-                        <span>Projet: <strong>{task.project}</strong></span>
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          Échéance: {new Date(task.deadline).toLocaleDateString('fr-FR')}
-                        </span>
-                        <span>Assigné par: <strong>{task.assignedBy}</strong></span>
+            {myTasks.length > 0 ? (
+              <div className="space-y-4">
+                {myTasks.map((task) => (
+                  <div key={task.id} className="p-4 bg-slate-50/50 rounded-lg border border-slate-200">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-medium text-slate-900">{task.title}</h4>
+                          <Badge className={`text-xs ${getStatusColor(task.status)}`}>
+                            {task.status}
+                          </Badge>
+                          <span className={`text-xs font-medium ${getPriorityColor(task.priority)}`}>
+                            {task.priority}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-600 mb-2">{task.description}</p>
+                        <div className="flex items-center gap-4 text-xs text-slate-500">
+                          <span>Projet: <strong>{task.project}</strong></span>
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            Échéance: {new Date(task.deadline).toLocaleDateString('fr-FR')}
+                          </span>
+                          <span>Assigné par: <strong>{task.assignedBy}</strong></span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-2">
-                    {task.status !== 'Terminé' && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleCompleteTask(task)}
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                      >
-                        <CheckSquare className="w-4 h-4 mr-1" />
-                        Marquer terminé
-                      </Button>
-                    )}
-                    
-                    <Dialog open={isExtensionDialogOpen} onOpenChange={setIsExtensionDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm" onClick={() => setSelectedTask(task)}>
-                          <Clock className="w-4 h-4 mr-1" />
-                          Demander prolongation
+                    {/* Actions */}
+                    <div className="flex items-center gap-2">
+                      {task.status !== 'Terminé' && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleCompleteTask(task)}
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                        >
+                          <CheckSquare className="w-4 h-4 mr-1" />
+                          Marquer terminé
                         </Button>
-                      </DialogTrigger>
+                      )}
                       
-                      <DialogContent className="sm:max-w-md">
-                        <DialogHeader>
-                          <DialogTitle>Demande de Prolongation</DialogTitle>
-                          <DialogDescription>
-                            Expliquez pourquoi vous avez besoin de plus de temps pour cette tâche
-                          </DialogDescription>
-                        </DialogHeader>
+                      <Dialog open={isExtensionDialogOpen} onOpenChange={setIsExtensionDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm" onClick={() => setSelectedTask(task)}>
+                            <Clock className="w-4 h-4 mr-1" />
+                            Demander prolongation
+                          </Button>
+                        </DialogTrigger>
                         
-                        <div className="space-y-4">
-                          <div>
-                            <strong>Tâche:</strong> {selectedTask?.title}
+                        <DialogContent className="sm:max-w-md">
+                          <DialogHeader>
+                            <DialogTitle>Demande de Prolongation</DialogTitle>
+                            <DialogDescription>
+                              Expliquez pourquoi vous avez besoin de plus de temps pour cette tâche
+                            </DialogDescription>
+                          </DialogHeader>
+                          
+                          <div className="space-y-4">
+                            <div>
+                              <strong>Tâche:</strong> {selectedTask?.title}
+                            </div>
+                            <Textarea
+                              placeholder="Expliquez les raisons de votre demande de prolongation..."
+                              value={extensionRequest}
+                              onChange={(e) => setExtensionRequest(e.target.value)}
+                              rows={4}
+                            />
                           </div>
-                          <Textarea
-                            placeholder="Expliquez les raisons de votre demande de prolongation..."
-                            value={extensionRequest}
-                            onChange={(e) => setExtensionRequest(e.target.value)}
-                            rows={4}
-                          />
-                        </div>
-                        
-                        <DialogFooter>
-                          <Button variant="outline" onClick={() => setIsExtensionDialogOpen(false)}>
-                            Annuler
-                          </Button>
-                          <Button onClick={handleSendExtensionRequest}>
-                            <Send className="w-4 h-4 mr-2" />
-                            Envoyer la demande
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                    
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleViewTaskDetails(task)}
-                    >
-                      <FileText className="w-4 h-4 mr-1" />
-                      Voir détails
-                    </Button>
+                          
+                          <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsExtensionDialogOpen(false)}>
+                              Annuler
+                            </Button>
+                            <Button onClick={handleSendExtensionRequest}>
+                              <Send className="w-4 h-4 mr-2" />
+                              Envoyer la demande
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                      
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleViewTaskDetails(task)}
+                      >
+                        <FileText className="w-4 h-4 mr-1" />
+                        Voir détails
+                      </Button>
+                    </div>
                   </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckSquare className="w-8 h-8 text-slate-400" />
                 </div>
-              ))}
-            </div>
+                <h3 className="text-lg font-medium text-slate-900 mb-2">Aucune tâche assignée</h3>
+                <p className="text-slate-600">Vos tâches assignées apparaîtront ici</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </TabsContent>

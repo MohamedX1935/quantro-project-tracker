@@ -114,7 +114,7 @@ const Index = () => {
       {/* Main Content pour admin */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-white/60 backdrop-blur-sm border border-slate-200 shadow-sm">
+          <TabsList className="grid w-full grid-cols-4 bg-white/60 backdrop-blur-sm border border-slate-200 shadow-sm">
             <TabsTrigger 
               value="dashboard" 
               className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
@@ -156,9 +156,9 @@ const Index = () => {
                   <Calendar className="h-4 w-4 text-blue-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-slate-900">8</div>
+                  <div className="text-2xl font-bold text-slate-900">0</div>
                   <p className="text-xs text-slate-500">
-                    +2 ce mois-ci
+                    Aucun projet créé
                   </p>
                 </CardContent>
               </Card>
@@ -173,9 +173,9 @@ const Index = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-slate-900">156</div>
+                  <div className="text-2xl font-bold text-slate-900">0</div>
                   <p className="text-xs text-slate-500">
-                    +12 cette semaine
+                    Aucune tâche terminée
                   </p>
                 </CardContent>
               </Card>
@@ -188,9 +188,9 @@ const Index = () => {
                   <Users className="h-4 w-4 text-indigo-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-slate-900">24</div>
+                  <div className="text-2xl font-bold text-slate-900">0</div>
                   <p className="text-xs text-slate-500">
-                    Tous départements
+                    Aucun employé assigné
                   </p>
                 </CardContent>
               </Card>
@@ -205,9 +205,9 @@ const Index = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-slate-900">94%</div>
+                  <div className="text-2xl font-bold text-slate-900">-</div>
                   <p className="text-xs text-slate-500">
-                    +5% vs mois dernier
+                    Pas de données
                   </p>
                 </CardContent>
               </Card>
@@ -224,40 +224,19 @@ const Index = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {[
-                    { name: "Déploiement Infrastructure", progress: 75, team: 6, status: "En cours" },
-                    { name: "Migration Base de Données", progress: 45, team: 4, status: "En cours" },
-                    { name: "Formation Utilisateurs", progress: 90, team: 3, status: "Presque fini" },
-                  ].map((project, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 bg-slate-50/50 rounded-lg border border-slate-200">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-sm font-medium text-slate-900 truncate">
-                            {project.name}
-                          </h4>
-                          <Badge 
-                            variant={project.progress > 80 ? "default" : "secondary"}
-                            className="ml-2"
-                          >
-                            {project.status}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center space-x-4">
-                          <div className="flex-1">
-                            <Progress value={project.progress} className="h-2" />
-                          </div>
-                          <div className="text-sm text-slate-500 flex items-center">
-                            <Users className="w-3 h-3 mr-1" />
-                            {project.team}
-                          </div>
-                          <div className="text-sm font-medium text-slate-700">
-                            {project.progress}%
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Calendar className="w-8 h-8 text-slate-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-slate-900 mb-2">Aucun projet récent</h3>
+                  <p className="text-slate-600 mb-4">Créez votre premier projet pour commencer</p>
+                  <Button 
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                    onClick={() => setShowCreateProject(true)}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Créer un projet
+                  </Button>
                 </div>
               </CardContent>
             </Card>

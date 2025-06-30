@@ -9,32 +9,7 @@ import { Clock, Calendar, User, CheckCircle, XCircle, MessageSquare } from "luci
 import { toast } from "@/hooks/use-toast";
 
 const ExtensionRequestsManager = () => {
-  const [requests] = useState([
-    {
-      id: 1,
-      taskTitle: "Configuration serveurs production",
-      employeeName: "Bob Dupont",
-      projectName: "Infrastructure Cloud",
-      originalDeadline: "2024-07-25",
-      requestedExtension: "3 jours",
-      reason: "Problèmes de compatibilité réseau imprévus nécessitant des ajustements supplémentaires avec l'équipe infrastructure.",
-      status: "En attente",
-      submittedAt: "2024-07-23",
-      priority: "Haute"
-    },
-    {
-      id: 2,
-      taskTitle: "Migration données clients",
-      employeeName: "David Chen",
-      projectName: "Migration BDD",
-      originalDeadline: "2024-07-22",
-      requestedExtension: "5 jours",
-      reason: "Volume de données plus important que prévu et nécessité de tests supplémentaires pour garantir l'intégrité.",
-      status: "En attente",
-      submittedAt: "2024-07-21",
-      priority: "Critique"
-    }
-  ]);
+  const [requests] = useState<any[]>([]); // Tableau vide - plus d'exemples
 
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [isResponseDialogOpen, setIsResponseDialogOpen] = useState(false);
@@ -111,79 +86,89 @@ const ExtensionRequestsManager = () => {
         </CardHeader>
         
         <CardContent>
-          <div className="space-y-4">
-            {requests.map((request) => (
-              <div key={request.id} className="p-4 bg-slate-50/50 rounded-lg border border-slate-200">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-medium text-slate-900">{request.taskTitle}</h4>
-                      <Badge className={`text-xs ${getStatusColor(request.status)}`}>
-                        {request.status}
-                      </Badge>
-                      <span className={`text-xs font-medium ${getPriorityColor(request.priority)}`}>
-                        {request.priority}
-                      </span>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                      <div className="space-y-1">
-                        <div className="flex items-center text-sm text-slate-600">
-                          <User className="w-4 h-4 mr-2" />
-                          Employé: <strong className="ml-1">{request.employeeName}</strong>
-                        </div>
-                        <div className="text-sm text-slate-600">
-                          Projet: <strong>{request.projectName}</strong>
-                        </div>
+          {requests.length > 0 ? (
+            <div className="space-y-4">
+              {requests.map((request) => (
+                <div key={request.id} className="p-4 bg-slate-50/50 rounded-lg border border-slate-200">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h4 className="font-medium text-slate-900">{request.taskTitle}</h4>
+                        <Badge className={`text-xs ${getStatusColor(request.status)}`}>
+                          {request.status}
+                        </Badge>
+                        <span className={`text-xs font-medium ${getPriorityColor(request.priority)}`}>
+                          {request.priority}
+                        </span>
                       </div>
                       
-                      <div className="space-y-1">
-                        <div className="flex items-center text-sm text-slate-600">
-                          <Calendar className="w-4 h-4 mr-2" />
-                          Échéance originale: <strong className="ml-1">{new Date(request.originalDeadline).toLocaleDateString('fr-FR')}</strong>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center text-sm text-slate-600">
+                            <User className="w-4 h-4 mr-2" />
+                            Employé: <strong className="ml-1">{request.employeeName}</strong>
+                          </div>
+                          <div className="text-sm text-slate-600">
+                            Projet: <strong>{request.projectName}</strong>
+                          </div>
                         </div>
-                        <div className="text-sm text-slate-600">
-                          Extension demandée: <strong>{request.requestedExtension}</strong>
+                        
+                        <div className="space-y-1">
+                          <div className="flex items-center text-sm text-slate-600">
+                            <Calendar className="w-4 h-4 mr-2" />
+                            Échéance originale: <strong className="ml-1">{new Date(request.originalDeadline).toLocaleDateString('fr-FR')}</strong>
+                          </div>
+                          <div className="text-sm text-slate-600">
+                            Extension demandée: <strong>{request.requestedExtension}</strong>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="mb-3">
-                      <h5 className="text-sm font-medium text-slate-700 mb-1">Justification:</h5>
-                      <p className="text-sm text-slate-600 bg-white p-2 rounded border">
-                        {request.reason}
-                      </p>
-                    </div>
+                      <div className="mb-3">
+                        <h5 className="text-sm font-medium text-slate-700 mb-1">Justification:</h5>
+                        <p className="text-sm text-slate-600 bg-white p-2 rounded border">
+                          {request.reason}
+                        </p>
+                      </div>
 
-                    <div className="text-xs text-slate-500">
-                      Demande soumise le {new Date(request.submittedAt).toLocaleDateString('fr-FR')}
+                      <div className="text-xs text-slate-500">
+                        Demande soumise le {new Date(request.submittedAt).toLocaleDateString('fr-FR')}
+                      </div>
                     </div>
                   </div>
+
+                  {request.status === "En attente" && (
+                    <div className="flex items-center gap-2 pt-3 border-t border-slate-200">
+                      <Button
+                        size="sm"
+                        onClick={() => handleApprove(request.id)}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                        Approuver
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleReject(request.id)}
+                      >
+                        <XCircle className="w-4 h-4 mr-1" />
+                        Rejeter
+                      </Button>
+                    </div>
+                  )}
                 </div>
-
-                {request.status === "En attente" && (
-                  <div className="flex items-center gap-2 pt-3 border-t border-slate-200">
-                    <Button
-                      size="sm"
-                      onClick={() => handleApprove(request.id)}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      <CheckCircle className="w-4 h-4 mr-1" />
-                      Approuver
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleReject(request.id)}
-                    >
-                      <XCircle className="w-4 h-4 mr-1" />
-                      Rejeter
-                    </Button>
-                  </div>
-                )}
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Clock className="w-8 h-8 text-slate-400" />
               </div>
-            ))}
-          </div>
+              <h3 className="text-lg font-medium text-slate-900 mb-2">Aucune demande de prolongation</h3>
+              <p className="text-slate-600">Les nouvelles demandes apparaîtront ici</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -222,16 +207,6 @@ const ExtensionRequestsManager = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {requests.length === 0 && (
-        <div className="text-center py-12">
-          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Clock className="w-8 h-8 text-slate-400" />
-          </div>
-          <h3 className="text-lg font-medium text-slate-900 mb-2">Aucune demande de prolongation</h3>
-          <p className="text-slate-600">Les nouvelles demandes apparaîtront ici</p>
-        </div>
-      )}
     </div>
   );
 };
