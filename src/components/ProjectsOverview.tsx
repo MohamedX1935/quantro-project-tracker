@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Calendar, Users, MapPin, Search } from "lucide-react";
+import { Calendar, Users, MapPin, Search, Plus } from "lucide-react";
 import FilterDialog from "./FilterDialog";
 import CreateProjectDialog from "./CreateProjectDialog";
 import ProjectDetailsDialog from "./ProjectDetailsDialog";
