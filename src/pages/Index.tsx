@@ -1,16 +1,17 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { BarChart3, Users, Calendar, MapPin, Plus, Settings, LogOut, CheckSquare, FileText } from "lucide-react";
+import { BarChart3, Users, Calendar, MapPin, Plus, Settings, LogOut, CheckSquare, FileText, Clock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import ProjectsOverview from "@/components/ProjectsOverview";
-import TasksManager from "@/components/TasksManager";
 import TeamDashboard from "@/components/TeamDashboard";
 import CreateProjectDialog from "@/components/CreateProjectDialog";
 import EmployeeTasks from "@/components/EmployeeTasks";
+import ExtensionRequestsManager from "@/components/ExtensionRequestsManager";
 
 const Index = () => {
   const { user, logout } = useAuth();
@@ -113,7 +114,7 @@ const Index = () => {
       {/* Main Content pour admin */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-white/60 backdrop-blur-sm border border-slate-200 shadow-sm">
+          <TabsList className="grid w-full grid-cols-5 bg-white/60 backdrop-blur-sm border border-slate-200 shadow-sm">
             <TabsTrigger 
               value="dashboard" 
               className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
@@ -129,18 +130,18 @@ const Index = () => {
               Projets
             </TabsTrigger>
             <TabsTrigger 
-              value="tasks" 
-              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
-            >
-              <CheckSquare className="w-4 h-4" />
-              Tâches
-            </TabsTrigger>
-            <TabsTrigger 
               value="team" 
               className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
             >
               <Users className="w-4 h-4" />
               Équipe
+            </TabsTrigger>
+            <TabsTrigger 
+              value="extensions" 
+              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+            >
+              <Clock className="w-4 h-4" />
+              Prolongations
             </TabsTrigger>
           </TabsList>
 
@@ -266,12 +267,12 @@ const Index = () => {
             <ProjectsOverview />
           </TabsContent>
 
-          <TabsContent value="tasks">
-            <TasksManager />
-          </TabsContent>
-
           <TabsContent value="team">
             <TeamDashboard />
+          </TabsContent>
+
+          <TabsContent value="extensions">
+            <ExtensionRequestsManager />
           </TabsContent>
         </Tabs>
       </main>

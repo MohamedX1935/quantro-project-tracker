@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,11 +5,16 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Calendar, Users, MapPin, Search, Plus } from "lucide-react";
+import { Calendar, Users, MapPin, Search } from "lucide-react";
 import FilterDialog from "./FilterDialog";
+import CreateProjectDialog from "./CreateProjectDialog";
+import ProjectDetailsDialog from "./ProjectDetailsDialog";
 
 const ProjectsOverview = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [showCreateProject, setShowCreateProject] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<any>(null);
+  const [showProjectDetails, setShowProjectDetails] = useState(false);
 
   const projects = [
     {
@@ -78,8 +82,8 @@ const ProjectsOverview = () => {
   };
 
   const handleViewDetails = (project: any) => {
-    console.log("Voir détails du projet:", project);
-    // Ici on pourrait ouvrir un modal ou naviguer vers une page de détail
+    setSelectedProject(project);
+    setShowProjectDetails(true);
   };
 
   return (
@@ -98,8 +102,10 @@ const ProjectsOverview = () => {
         
         <div className="flex gap-2">
           <FilterDialog type="projects" />
-          <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
-            <Plus className="w-4 h-4 mr-2" />
+          <Button 
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+            onClick={() => setShowCreateProject(true)}
+          >
             Nouveau Projet
           </Button>
         </div>
@@ -184,6 +190,17 @@ const ProjectsOverview = () => {
           </Card>
         ))}
       </div>
+
+      <CreateProjectDialog 
+        open={showCreateProject}
+        onOpenChange={setShowCreateProject}
+      />
+
+      <ProjectDetailsDialog 
+        project={selectedProject}
+        open={showProjectDetails}
+        onOpenChange={setShowProjectDetails}
+      />
 
       {filteredProjects.length === 0 && (
         <div className="text-center py-12">

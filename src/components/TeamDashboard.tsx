@@ -6,12 +6,16 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { Users, Search, Mail, MapPin, Calendar, Plus } from "lucide-react";
+import { Users, Search, Mail, MapPin, Calendar, Plus, Download } from "lucide-react";
 import FilterDialog from "./FilterDialog";
-import AddEmployeeDialog from "./AddEmployeeDialog";
+import AssignEmployeeDialog from "./AssignEmployeeDialog";
+import EmployeeDetailsDialog from "./EmployeeDetailsDialog";
+import { toast } from "@/hooks/use-toast";
 
 const TeamDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
+  const [showEmployeeDetails, setShowEmployeeDetails] = useState(false);
 
   const employees = [
     {
@@ -90,13 +94,28 @@ const TeamDashboard = () => {
   };
 
   const handleViewEmployeeDetails = (employee: any) => {
-    console.log("Voir détails de l'employé:", employee);
-    // Ici on pourrait ouvrir un modal de détail
+    setSelectedEmployee(employee);
+    setShowEmployeeDetails(true);
   };
 
   const handleExportTeam = () => {
-    console.log("Exportation des données de l'équipe...");
-    // Ici on pourrait générer un fichier CSV/Excel
+    // Simuler l'export des données
+    const csvData = employees.map(emp => ({
+      Nom: emp.name,
+      Role: emp.role,
+      Email: emp.email,
+      Statut: emp.status,
+      TachesActives: emp.currentTasks,
+      TachesTerminees: emp.completedTasks,
+      Localisation: emp.location
+    }));
+
+    console.log("Export des données de l'équipe:", csvData);
+    
+    toast({
+      title: "Export réussi",
+      description: "Les données de l'équipe ont été exportées avec succès.",
+    });
   };
 
   const totalEmployees = employees.length;
@@ -194,9 +213,10 @@ const TeamDashboard = () => {
             className="bg-white/80 backdrop-blur-sm border-slate-200"
             onClick={handleExportTeam}
           >
+            <Download className="w-4 h-4 mr-2" />
             Exporter
           </Button>
-          <AddEmployeeDialog />
+          <AssignEmployeeDialog />
         </div>
       </div>
 
@@ -275,7 +295,12 @@ const TeamDashboard = () => {
                           )}
                         </div>
                       </div>
-                      <Button variant="outline" size="sm" className="bg-white/50 hover:bg-white">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="bg-white/50 hover:bg-white"
+                        onClick={() => handleViewEmployeeDetails(employee)}
+                      >
                         Détails
                       </Button>
                     </div>
@@ -341,7 +366,11 @@ const TeamDashboard = () => {
                     </div>
                   </div>
 
-                  <Button variant="outline" className="w-full bg-white/50 hover:bg-white">
+                  <Button 
+                    variant="outline" 
+                    className="w-full bg-white/50 hover:bg-white"
+                    onClick={() => handleViewEmployeeDetails(employee)}
+                  >
                     Voir le profil
                   </Button>
                 </CardContent>
@@ -350,6 +379,12 @@ const TeamDashboard = () => {
           </div>
         </TabsContent>
       </Tabs>
+
+      <EmployeeDetailsDialog 
+        employee={selectedEmployee}
+        open={showEmployeeDetails}
+        onOpenChange={setShowEmployeeDetails}
+      />
 
       {filteredEmployees.length === 0 && (
         <div className="text-center py-12">
