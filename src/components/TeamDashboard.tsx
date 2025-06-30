@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Users, Search, Mail, MapPin, Calendar, Plus } from "lucide-react";
+import FilterDialog from "./FilterDialog";
+import AddEmployeeDialog from "./AddEmployeeDialog";
 
 const TeamDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -88,6 +89,16 @@ const TeamDashboard = () => {
     }
   };
 
+  const handleViewEmployeeDetails = (employee: any) => {
+    console.log("Voir détails de l'employé:", employee);
+    // Ici on pourrait ouvrir un modal de détail
+  };
+
+  const handleExportTeam = () => {
+    console.log("Exportation des données de l'équipe...");
+    // Ici on pourrait générer un fichier CSV/Excel
+  };
+
   const totalEmployees = employees.length;
   const activeEmployees = employees.filter(emp => emp.status === "Actif").length;
   const totalTasks = employees.reduce((sum, emp) => sum + emp.currentTasks, 0);
@@ -97,6 +108,7 @@ const TeamDashboard = () => {
     <div className="space-y-6">
       {/* Team Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Team Statistics */}
         <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-slate-600">
@@ -177,13 +189,14 @@ const TeamDashboard = () => {
         </div>
         
         <div className="flex gap-2">
-          <Button variant="outline" className="bg-white/80 backdrop-blur-sm border-slate-200">
+          <Button 
+            variant="outline" 
+            className="bg-white/80 backdrop-blur-sm border-slate-200"
+            onClick={handleExportTeam}
+          >
             Exporter
           </Button>
-          <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
-            <Plus className="w-4 h-4 mr-2" />
-            Ajouter Employé
-          </Button>
+          <AddEmployeeDialog />
         </div>
       </div>
 

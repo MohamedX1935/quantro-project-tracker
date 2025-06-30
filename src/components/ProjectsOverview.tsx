@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Calendar, Users, MapPin, Search, Plus } from "lucide-react";
+import FilterDialog from "./FilterDialog";
 
 const ProjectsOverview = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -76,6 +77,11 @@ const ProjectsOverview = () => {
     }
   };
 
+  const handleViewDetails = (project: any) => {
+    console.log("Voir détails du projet:", project);
+    // Ici on pourrait ouvrir un modal ou naviguer vers une page de détail
+  };
+
   return (
     <div className="space-y-6">
       {/* Search and Filters */}
@@ -91,9 +97,7 @@ const ProjectsOverview = () => {
         </div>
         
         <div className="flex gap-2">
-          <Button variant="outline" className="bg-white/80 backdrop-blur-sm border-slate-200">
-            Filtrer
-          </Button>
+          <FilterDialog type="projects" />
           <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
             <Plus className="w-4 h-4 mr-2" />
             Nouveau Projet
@@ -172,6 +176,7 @@ const ProjectsOverview = () => {
               <Button 
                 variant="outline" 
                 className="w-full mt-4 bg-white/50 hover:bg-white border-slate-200 hover:border-blue-300 hover:text-blue-600 transition-colors"
+                onClick={() => handleViewDetails(project)}
               >
                 Voir les détails
               </Button>

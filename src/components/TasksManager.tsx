@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Users, MapPin, Search, Plus, Calendar as CalendarIcon } from "lucide-react";
+import FilterDialog from "./FilterDialog";
+import NewTaskDialog from "./NewTaskDialog";
 
 const TasksManager = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -89,6 +90,11 @@ const TasksManager = () => {
     }
   };
 
+  const handleViewTaskDetails = (task: any) => {
+    console.log("Voir détails de la tâche:", task);
+    // Ici on pourrait ouvrir un modal de détail
+  };
+
   return (
     <div className="space-y-6">
       {/* Search and Filters */}
@@ -104,13 +110,8 @@ const TasksManager = () => {
         </div>
         
         <div className="flex gap-2">
-          <Button variant="outline" className="bg-white/80 backdrop-blur-sm border-slate-200">
-            Filtrer
-          </Button>
-          <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
-            <Plus className="w-4 h-4 mr-2" />
-            Nouvelle Tâche
-          </Button>
+          <FilterDialog type="tasks" />
+          <NewTaskDialog />
         </div>
       </div>
 
@@ -177,6 +178,7 @@ const TasksManager = () => {
                       variant="outline" 
                       size="sm"
                       className="bg-white/50 hover:bg-white border-slate-200"
+                      onClick={() => handleViewTaskDetails(task)}
                     >
                       Détails
                     </Button>

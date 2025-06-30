@@ -3,20 +3,20 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckSquare, Clock, FileText, MapPin, Paperclip, Send, Calendar, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import TaskReportDialog from "./TaskReportDialog";
 
 const EmployeeTasks = () => {
   const { user } = useAuth();
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [extensionRequest, setExtensionRequest] = useState("");
   const [isExtensionDialogOpen, setIsExtensionDialogOpen] = useState(false);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
 
   // Données simulées des tâches pour l'employé connecté
   const myTasks = [
@@ -28,7 +28,6 @@ const EmployeeTasks = () => {
       deadline: "2024-07-25",
       status: "En cours",
       priority: "Haute",
-      progress: 60,
       assignedBy: "Alice Martin",
       createdAt: "2024-07-15"
     },
@@ -40,7 +39,6 @@ const EmployeeTasks = () => {
       deadline: "2024-07-22",
       status: "À faire",
       priority: "Moyenne",
-      progress: 0,
       assignedBy: "Alice Martin",
       createdAt: "2024-07-16"
     },
@@ -52,13 +50,17 @@ const EmployeeTasks = () => {
       deadline: "2024-07-28",
       status: "En cours",
       priority: "Normale",
-      progress: 80,
       assignedBy: "Frank Miller",
       createdAt: "2024-07-10"
     }
   ];
 
-  const handleCompleteTask = (taskId: number) => {
+  const handleCompleteTask = (task: any) => {
+    setSelectedTask(task);
+    setIsReportDialogOpen(true);
+  };
+
+  const handleTaskCompleted = () => {
     toast({
       title: "Tâche terminée",
       description: "La tâche a été marquée comme terminée avec succès.",
@@ -149,14 +151,14 @@ const EmployeeTasks = () => {
 
         <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">Progression</CardTitle>
-            <FileText className="h-4 w-4 text-indigo-600" />
+            <CardTitle className="text-sm font-medium text-slate-600">À faire</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-slate-900">
-              {Math.round(myTasks.reduce((acc, task) => acc + task.progress, 0) / myTasks.length)}%
+              {myTasks.filter(task => task.status === 'À faire').length}
             </div>
-            <p className="text-xs text-slate-500">Moyenne globale</p>
+            <p className="text-xs text-slate-500">En attente</p>
           </CardContent>
         </Card>
       </div>
@@ -199,37 +201,18 @@ const EmployeeTasks = () => {
                   </div>
                 </div>
 
-                {/* Progression */}
-                <div className="mb-4">
-                  <div className="flex justify-between items-center text-sm mb-1">
-                    <span className="text-slate-600">Progression</span>
-                    <span className="font-medium text-slate-900">{task.progress}%</span>
-                  </div>
-                  <Progress value={task.progress} className="h-2" />
-                </div>
-
                 {/* Actions */}
                 <div className="flex items-center gap-2">
                   {task.status !== 'Terminé' && (
                     <Button
                       size="sm"
-                      onClick={() => handleCompleteTask(task.id)}
+                      onClick={() => handleCompleteTask(task)}
                       className="bg-green-600 hover:bg-green-700 text-white"
                     >
                       <CheckSquare className="w-4 h-4 mr-1" />
                       Marquer terminé
                     </Button>
                   )}
-                  
-                  <Button variant="outline" size="sm">
-                    <Paperclip className="w-4 h-4 mr-1" />
-                    Joindre fichier
-                  </Button>
-                  
-                  <Button variant="outline" size="sm">
-                    <MapPin className="w-4 h-4 mr-1" />
-                    Localisation
-                  </Button>
                   
                   <Dialog open={isExtensionDialogOpen} onOpenChange={setIsExtensionDialogOpen}>
                     <DialogTrigger asChild>
@@ -273,7 +256,7 @@ const EmployeeTasks = () => {
                   
                   <Button variant="outline" size="sm">
                     <FileText className="w-4 h-4 mr-1" />
-                    Rapport
+                    Voir détails
                   </Button>
                 </div>
               </div>
@@ -281,6 +264,13 @@ const EmployeeTasks = () => {
           </div>
         </CardContent>
       </Card>
+
+      <TaskReportDialog
+        task={selectedTask}
+        open={isReportDialogOpen}
+        onOpenChange={setIsReportDialogOpen}
+        onComplete={handleTaskCompleted}
+      />
     </div>
   );
 };

@@ -97,14 +97,6 @@ const LoginPage = () => {
               )}
             </Button>
           </form>
-
-          <div className="mt-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
-            <h3 className="text-sm font-medium text-slate-700 mb-2">Compte par défaut :</h3>
-            <div className="text-xs text-slate-600 space-y-1">
-              <div><strong>Identifiant :</strong> root</div>
-              <div><strong>Mot de passe :</strong> p@$$w0rd</div>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>
