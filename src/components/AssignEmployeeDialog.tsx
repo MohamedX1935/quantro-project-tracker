@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { UserPlus, Users } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useProjects } from "@/contexts/ProjectContext";
 
 interface AssignEmployeeDialogProps {
   open?: boolean;
@@ -18,19 +20,11 @@ const AssignEmployeeDialog = ({ open, onOpenChange }: AssignEmployeeDialogProps)
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const [selectedProject, setSelectedProject] = useState("");
 
-  // Simulated list of employees created by root
-  const availableEmployees = [
-    { id: "1", name: "Sophie Martin", role: "Développeur", initials: "SM", status: "Disponible" },
-    { id: "2", name: "Marc Dubois", role: "Analyste", initials: "MD", status: "Disponible" },
-    { id: "3", name: "Julie Chen", role: "Designer", initials: "JC", status: "Assigné" },
-    { id: "4", name: "Pierre Wilson", role: "DevOps", initials: "PW", status: "Disponible" },
-  ];
+  const { users } = useAuth();
+  const { projects } = useProjects();
 
-  const projects = [
-    { id: "1", name: "Infrastructure Cloud" },
-    { id: "2", name: "Migration BDD" },
-    { id: "3", name: "Formation Utilisateurs" },
-  ];
+  // Filtrer uniquement les employés créés par root
+  const availableEmployees = users.filter(user => user.role === 'employee');
 
   const handleAssignEmployee = () => {
     if (!selectedEmployee || !selectedProject) {
@@ -47,7 +41,7 @@ const AssignEmployeeDialog = ({ open, onOpenChange }: AssignEmployeeDialogProps)
 
     toast({
       title: "Employé assigné",
-      description: `${employee?.name} a été assigné au projet "${project?.name}".`,
+      description: `${employee?.firstName && employee?.lastName ? `${employee.firstName} ${employee.lastName}` : employee?.username} a été assigné au projet "${project?.name}".`,
     });
 
     console.log("Assignation:", { employeeId: selectedEmployee, projectId: selectedProject });
@@ -86,21 +80,35 @@ const AssignEmployeeDialog = ({ open, onOpenChange }: AssignEmployeeDialogProps)
                 <SelectValue placeholder="Sélectionner un employé" />
               </SelectTrigger>
               <SelectContent>
-                {availableEmployees.map((employee) => (
-                  <SelectItem key={employee.id} value={employee.id} disabled={employee.status === "Assigné"}>
-                    <div className="flex items-center space-x-2">
-                      <Avatar className="w-6 h-6">
-                        <AvatarFallback className="text-xs bg-gradient-to-r from-blue-500 to-indigo-500 text-white">
-                          {employee.initials}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span>{employee.name}</span>
-                      <Badge variant={employee.status === "Disponible" ? "default" : "secondary"} className="text-xs">
-                        {employee.status}
-                      </Badge>
-                    </div>
+                {availableEmployees.length > 0 ? (
+                  availableEmployees.map((employee) => (
+                    <SelectItem key={employee.id} value={employee.id}>
+                      <div className="flex items-center space-x-2">
+                        <Avatar className="w-6 h-6">
+                          <AvatarFallback className="text-xs bg-gradient-to-r from-blue-500 to-indigo-500 text-white">
+                            {employee.firstName && employee.lastName 
+                              ? `${employee.firstName[0]}${employee.lastName[0]}` 
+                              : employee.username.slice(0, 2).toUpperCase()
+                            }
+                          </AvatarFallback>
+                        </Avatar>
+                        <span>
+                          {employee.firstName && employee.lastName 
+                            ? `${employee.firstName} ${employee.lastName}` 
+                            : employee.username
+                          }
+                        </span>
+                        <Badge variant="default" className="text-xs">
+                          Disponible
+                        </Badge>
+                      </div>
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="" disabled>
+                    Aucun employé disponible
                   </SelectItem>
-                ))}
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -112,11 +120,17 @@ const AssignEmployeeDialog = ({ open, onOpenChange }: AssignEmployeeDialogProps)
                 <SelectValue placeholder="Sélectionner un projet" />
               </SelectTrigger>
               <SelectContent>
-                {projects.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
-                    {project.name}
+                {projects.length > 0 ? (
+                  projects.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="" disabled>
+                    Aucun projet disponible
                   </SelectItem>
-                ))}
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -130,12 +144,20 @@ const AssignEmployeeDialog = ({ open, onOpenChange }: AssignEmployeeDialogProps)
                   <div className="flex items-center space-x-2">
                     <Avatar className="w-8 h-8">
                       <AvatarFallback className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-xs">
-                        {employee.initials}
+                        {employee.firstName && employee.lastName 
+                          ? `${employee.firstName[0]}${employee.lastName[0]}` 
+                          : employee.username.slice(0, 2).toUpperCase()
+                        }
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <div className="text-sm font-medium">{employee.name}</div>
-                      <div className="text-xs text-slate-600">{employee.role}</div>
+                      <div className="text-sm font-medium">
+                        {employee.firstName && employee.lastName 
+                          ? `${employee.firstName} ${employee.lastName}` 
+                          : employee.username
+                        }
+                      </div>
+                      <div className="text-xs text-slate-600">Employé</div>
                     </div>
                   </div>
                 ) : null;
@@ -148,7 +170,7 @@ const AssignEmployeeDialog = ({ open, onOpenChange }: AssignEmployeeDialogProps)
           <Button variant="outline" onClick={() => onOpenChange?.(false)}>
             Annuler
           </Button>
-          <Button onClick={handleAssignEmployee}>
+          <Button onClick={handleAssignEmployee} disabled={!projects.length || !availableEmployees.length}>
             <Users className="w-4 h-4 mr-2" />
             Assigner
           </Button>

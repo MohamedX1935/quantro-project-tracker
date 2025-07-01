@@ -3,13 +3,12 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Calendar, Users, MapPin, Search, Plus } from "lucide-react";
+import { Search, Plus, Calendar, MapPin } from "lucide-react";
 import FilterDialog from "./FilterDialog";
 import CreateProjectDialog from "./CreateProjectDialog";
 import ProjectDetailsDialog from "./ProjectDetailsDialog";
+import { useProjects } from "@/contexts/ProjectContext";
 
 const ProjectsOverview = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -17,21 +16,21 @@ const ProjectsOverview = () => {
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [showProjectDetails, setShowProjectDetails] = useState(false);
 
-  const projects: any[] = []; // Tableau vide - plus d'exemples
+  const { projects, isLoading } = useProjects();
 
   const filteredProjects = projects.filter(project =>
     project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     project.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Presque fini":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "En cours":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      case "En retard":
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case "haute":
         return "bg-red-100 text-red-800 border-red-200";
+      case "moyenne":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "basse":
+        return "bg-green-100 text-green-800 border-green-200";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
@@ -41,6 +40,14 @@ const ProjectsOverview = () => {
     setSelectedProject(project);
     setShowProjectDetails(true);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-lg text-slate-600">Chargement des projets...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -81,58 +88,25 @@ const ProjectsOverview = () => {
                     {project.description}
                   </CardDescription>
                 </div>
-                <Badge className={`ml-2 text-xs ${getStatusColor(project.status)}`}>
-                  {project.status}
+                <Badge className={`ml-2 text-xs ${getPriorityColor(project.priority)}`}>
+                  {project.priority}
                 </Badge>
               </div>
             </CardHeader>
             
             <CardContent className="space-y-4">
-              {/* Progress */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-600">Progression</span>
-                  <span className="font-medium text-slate-900">{project.progress}%</span>
-                </div>
-                <Progress value={project.progress} className="h-2" />
-                <div className="flex justify-between items-center text-xs text-slate-500">
-                  <span>{project.tasks.completed}/{project.tasks.total} tâches</span>
-                  <span>complétées</span>
-                </div>
-              </div>
-
-              {/* Team */}
-              <div className="space-y-2">
-                <div className="flex items-center text-sm text-slate-600">
-                  <Users className="w-4 h-4 mr-2" />
-                  Équipe ({project.team.length})
-                </div>
-                <div className="flex -space-x-2">
-                  {project.team.slice(0, 3).map((member: any, index: number) => (
-                    <Avatar key={index} className="w-8 h-8 border-2 border-white">
-                      <AvatarFallback className="text-xs bg-gradient-to-r from-blue-500 to-indigo-500 text-white">
-                        {member.initials}
-                      </AvatarFallback>
-                    </Avatar>
-                  ))}
-                  {project.team.length > 3 && (
-                    <div className="w-8 h-8 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-xs text-slate-600">
-                      +{project.team.length - 3}
-                    </div>
-                  )}
-                </div>
-              </div>
-
               {/* Info */}
               <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100">
                 <div className="flex items-center text-sm text-slate-600">
                   <Calendar className="w-4 h-4 mr-2" />
                   <span className="truncate">{new Date(project.deadline).toLocaleDateString('fr-FR')}</span>
                 </div>
-                <div className="flex items-center text-sm text-slate-600">
-                  <MapPin className="w-4 h-4 mr-2" />
-                  <span className="truncate">{project.location}</span>
-                </div>
+                {project.location && (
+                  <div className="flex items-center text-sm text-slate-600">
+                    <MapPin className="w-4 h-4 mr-2" />
+                    <span className="truncate">{project.location}</span>
+                  </div>
+                )}
               </div>
 
               <Button 
@@ -158,7 +132,7 @@ const ProjectsOverview = () => {
         onOpenChange={setShowProjectDetails}
       />
 
-      {filteredProjects.length === 0 && (
+      {filteredProjects.length === 0 && !isLoading && (
         <div className="text-center py-12">
           <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Search className="w-8 h-8 text-slate-400" />

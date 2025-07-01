@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useProjects } from "@/contexts/ProjectContext";
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -20,8 +21,11 @@ const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogProps) =
   const [deadline, setDeadline] = useState("");
   const [priority, setPriority] = useState("");
   const [location, setLocation] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
 
-  const handleCreateProject = () => {
+  const { createProject } = useProjects();
+
+  const handleCreateProject = async () => {
     if (!projectName || !description || !deadline) {
       toast({
         title: "Erreur",
@@ -31,8 +35,9 @@ const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogProps) =
       return;
     }
 
-    // Simuler la création du projet
-    console.log("Création du projet:", {
+    setIsCreating(true);
+
+    const success = await createProject({
       name: projectName,
       description,
       deadline,
@@ -40,18 +45,28 @@ const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogProps) =
       location
     });
 
-    toast({
-      title: "Projet créé",
-      description: `Le projet "${projectName}" a été créé avec succès.`,
-    });
+    if (success) {
+      toast({
+        title: "Projet créé",
+        description: `Le projet "${projectName}" a été créé avec succès.`,
+      });
 
-    // Réinitialiser le formulaire
-    setProjectName("");
-    setDescription("");
-    setDeadline("");
-    setPriority("");
-    setLocation("");
-    onOpenChange(false);
+      // Réinitialiser le formulaire
+      setProjectName("");
+      setDescription("");
+      setDeadline("");
+      setPriority("");
+      setLocation("");
+      onOpenChange(false);
+    } else {
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer le projet. Veuillez réessayer.",
+        variant: "destructive"
+      });
+    }
+
+    setIsCreating(false);
   };
 
   return (
@@ -122,12 +137,12 @@ const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogProps) =
         </div>
         
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isCreating}>
             Annuler
           </Button>
-          <Button onClick={handleCreateProject}>
+          <Button onClick={handleCreateProject} disabled={isCreating}>
             <Plus className="w-4 h-4 mr-2" />
-            Créer le projet
+            {isCreating ? "Création..." : "Créer le projet"}
           </Button>
         </DialogFooter>
       </DialogContent>
