@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 export interface User {
@@ -49,25 +50,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [passwords, setPasswords] = useState<Record<string, string>>(defaultPasswords);
   const [isLoading, setIsLoading] = useState(true);
 
+  console.log('AuthProvider: Initializing...');
+
   // Charger les données depuis localStorage au démarrage
   useEffect(() => {
+    console.log('AuthProvider: Loading data from localStorage');
     try {
       const savedUsers = localStorage.getItem('quantro_users');
       const savedPasswords = localStorage.getItem('quantro_passwords');
       const savedUser = localStorage.getItem('quantro_current_user');
 
       if (savedUsers) {
+        console.log('AuthProvider: Found saved users');
         setUsers(JSON.parse(savedUsers));
       }
       if (savedPasswords) {
+        console.log('AuthProvider: Found saved passwords');
         setPasswords(JSON.parse(savedPasswords));
       }
       if (savedUser) {
+        console.log('AuthProvider: Found saved current user');
         setUser(JSON.parse(savedUser));
       }
     } catch (error) {
       console.error('Error loading user data:', error);
     } finally {
+      console.log('AuthProvider: Finished loading');
       setIsLoading(false);
     }
   }, []);
@@ -90,15 +98,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   const login = (username: string, password: string): boolean => {
+    console.log('AuthProvider: Login attempt for:', username);
     const foundUser = users.find(u => u.username === username);
     if (foundUser && passwords[username] === password) {
+      console.log('AuthProvider: Login successful');
       setUser(foundUser);
       return true;
     }
+    console.log('AuthProvider: Login failed');
     return false;
   };
 
   const logout = () => {
+    console.log('AuthProvider: Logout');
     setUser(null);
     localStorage.removeItem('quantro_current_user');
   };
@@ -147,6 +159,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   if (isLoading) {
+    console.log('AuthProvider: Showing loading screen');
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
         <div className="text-center">
@@ -158,6 +171,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       </div>
     );
   }
+
+  console.log('AuthProvider: Rendering main app, user:', user);
 
   return (
     <AuthContext.Provider value={{

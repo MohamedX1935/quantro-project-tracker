@@ -35,9 +35,18 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
 
   const refreshProjects = async () => {
+    console.log('ProjectProvider: refreshProjects called');
     setIsLoading(true);
     setError(null);
+    
     try {
+      // Check if supabase is properly configured
+      if (!supabase || typeof supabase.from !== 'function') {
+        console.warn('Supabase not properly configured, using empty projects list');
+        setProjects([]);
+        return;
+      }
+
       console.log('Fetching projects from Supabase...');
       const { data, error } = await supabase
         .from('projects')
@@ -55,6 +64,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Error refreshing projects:', error);
       setError('Erreur de connexion à la base de données.');
+      setProjects([]);
     } finally {
       setIsLoading(false);
     }
@@ -67,9 +77,16 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     priority?: string;
     location?: string;
   }): Promise<boolean> => {
+    console.log('ProjectProvider: createProject called with:', projectData);
+    
     try {
-      console.log('Creating project:', projectData);
-      
+      // Check if supabase is properly configured
+      if (!supabase || typeof supabase.from !== 'function') {
+        console.warn('Supabase not properly configured, cannot create project');
+        setError('Supabase n\'est pas configuré correctement.');
+        return false;
+      }
+
       // For now, use a mock user ID since we're not using Supabase auth yet
       const mockUserId = 'user-' + Date.now();
 
@@ -95,7 +112,6 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       }
 
       console.log('Project created successfully:', data);
-      // Rafraîchir la liste des projets
       await refreshProjects();
       return true;
     } catch (error) {
@@ -105,8 +121,9 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Charger les projets au démarrage
+  // Only try to load projects if we're not in the initial render
   useEffect(() => {
+    console.log('ProjectProvider: useEffect called');
     refreshProjects();
   }, []);
 
