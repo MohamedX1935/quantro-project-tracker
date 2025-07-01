@@ -40,13 +40,6 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     setError(null);
     
     try {
-      // Check if supabase is properly configured
-      if (!supabase || typeof supabase.from !== 'function') {
-        console.warn('Supabase not properly configured, using empty projects list');
-        setProjects([]);
-        return;
-      }
-
       console.log('Fetching projects from Supabase...');
       const { data, error } = await supabase
         .from('projects')
@@ -55,11 +48,11 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error('Error fetching projects:', error);
-        setError('Erreur lors du chargement des projets. Vérifiez votre connexion Supabase.');
+        setError('Erreur lors du chargement des projets: ' + error.message);
         return;
       }
 
-      console.log('Projects fetched:', data);
+      console.log('Projects fetched successfully:', data);
       setProjects(data || []);
     } catch (error) {
       console.error('Error refreshing projects:', error);
@@ -80,28 +73,23 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     console.log('ProjectProvider: createProject called with:', projectData);
     
     try {
-      // Check if supabase is properly configured
-      if (!supabase || typeof supabase.from !== 'function') {
-        console.warn('Supabase not properly configured, cannot create project');
-        setError('Supabase n\'est pas configuré correctement.');
-        return false;
-      }
+      // Pour l'instant, on utilise un ID mock puisque nous n'avons pas encore d'authentification
+      const mockUserId = 'admin-' + Date.now();
 
-      // For now, use a mock user ID since we're not using Supabase auth yet
-      const mockUserId = 'user-' + Date.now();
+      const newProject = {
+        name: projectData.name,
+        description: projectData.description,
+        deadline: projectData.deadline,
+        priority: projectData.priority || 'moyenne',
+        location: projectData.location || '',
+        created_by: mockUserId,
+      };
+
+      console.log('Inserting project:', newProject);
 
       const { data, error } = await supabase
         .from('projects')
-        .insert([
-          {
-            name: projectData.name,
-            description: projectData.description,
-            deadline: projectData.deadline,
-            priority: projectData.priority || 'moyenne',
-            location: projectData.location || '',
-            created_by: mockUserId,
-          }
-        ])
+        .insert([newProject])
         .select()
         .single();
 
@@ -112,6 +100,8 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       }
 
       console.log('Project created successfully:', data);
+      
+      // Rafraîchir immédiatement la liste des projets
       await refreshProjects();
       return true;
     } catch (error) {
@@ -121,9 +111,8 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Only try to load projects if we're not in the initial render
   useEffect(() => {
-    console.log('ProjectProvider: useEffect called');
+    console.log('ProjectProvider: useEffect called - loading projects');
     refreshProjects();
   }, []);
 
