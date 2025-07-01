@@ -24,6 +24,7 @@ interface ProjectContextType {
   }) => Promise<boolean>;
   refreshProjects: () => Promise<void>;
   isLoading: boolean;
+  error: string | null;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
@@ -31,10 +32,13 @@ const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 export const ProjectProvider = ({ children }: { children: ReactNode }) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const refreshProjects = async () => {
     setIsLoading(true);
+    setError(null);
     try {
+      console.log('Fetching projects from Supabase...');
       const { data, error } = await supabase
         .from('projects')
         .select('*')
@@ -42,12 +46,15 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error('Error fetching projects:', error);
+        setError('Erreur lors du chargement des projets. Vérifiez votre connexion Supabase.');
         return;
       }
 
+      console.log('Projects fetched:', data);
       setProjects(data || []);
     } catch (error) {
       console.error('Error refreshing projects:', error);
+      setError('Erreur de connexion à la base de données.');
     } finally {
       setIsLoading(false);
     }
@@ -61,12 +68,10 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     location?: string;
   }): Promise<boolean> => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      console.log('Creating project:', projectData);
       
-      if (!user) {
-        console.error('User not authenticated');
-        return false;
-      }
+      // For now, use a mock user ID since we're not using Supabase auth yet
+      const mockUserId = 'user-' + Date.now();
 
       const { data, error } = await supabase
         .from('projects')
@@ -77,7 +82,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
             deadline: projectData.deadline,
             priority: projectData.priority || 'moyenne',
             location: projectData.location || '',
-            created_by: user.id,
+            created_by: mockUserId,
           }
         ])
         .select()
@@ -85,14 +90,17 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error('Error creating project:', error);
+        setError('Erreur lors de la création du projet: ' + error.message);
         return false;
       }
 
+      console.log('Project created successfully:', data);
       // Rafraîchir la liste des projets
       await refreshProjects();
       return true;
     } catch (error) {
       console.error('Error creating project:', error);
+      setError('Erreur lors de la création du projet.');
       return false;
     }
   };
@@ -107,7 +115,8 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       projects,
       createProject,
       refreshProjects,
-      isLoading
+      isLoading,
+      error
     }}>
       {children}
     </ProjectContext.Provider>

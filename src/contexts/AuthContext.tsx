@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 export interface User {
@@ -48,21 +47,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>(defaultUsers);
   const [passwords, setPasswords] = useState<Record<string, string>>(defaultPasswords);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Charger les données depuis localStorage au démarrage
   useEffect(() => {
-    const savedUsers = localStorage.getItem('quantro_users');
-    const savedPasswords = localStorage.getItem('quantro_passwords');
-    const savedUser = localStorage.getItem('quantro_current_user');
+    try {
+      const savedUsers = localStorage.getItem('quantro_users');
+      const savedPasswords = localStorage.getItem('quantro_passwords');
+      const savedUser = localStorage.getItem('quantro_current_user');
 
-    if (savedUsers) {
-      setUsers(JSON.parse(savedUsers));
-    }
-    if (savedPasswords) {
-      setPasswords(JSON.parse(savedPasswords));
-    }
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
+      if (savedUsers) {
+        setUsers(JSON.parse(savedUsers));
+      }
+      if (savedPasswords) {
+        setPasswords(JSON.parse(savedPasswords));
+      }
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -139,6 +145,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
     return true;
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+            <span className="w-5 h-5 text-white font-bold">Q</span>
+          </div>
+          <div className="text-lg text-slate-600">Chargement...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AuthContext.Provider value={{
