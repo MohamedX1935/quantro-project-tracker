@@ -59,16 +59,25 @@ const Index = () => {
                   </h1>
                 </div>
               </div>
-              <div className="flex items-center space-x-4">
-                <span className="text-sm text-slate-600">
-                  Bonjour, {user.firstName && user.lastName 
-                    ? `${user.firstName} ${user.lastName}` 
-                    : user.username}
-                </span>
-                <Badge className="bg-green-100 text-green-800 border-green-200">
-                  Employé
-                </Badge>
-              </div>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-slate-600">
+                Bonjour, {user.firstName && user.lastName 
+                  ? `${user.firstName} ${user.lastName}` 
+                  : user.username}
+              </span>
+              <Badge className="bg-green-100 text-green-800 border-green-200">
+                Employé
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={logout}
+                className="text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Déconnexion
+              </Button>
+            </div>
             </div>
           </div>
         </header>
