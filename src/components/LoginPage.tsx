@@ -20,14 +20,17 @@ const LoginPage = () => {
     setError('');
     setIsLoading(true);
 
-    // Simuler un délai de connexion
-    setTimeout(() => {
-      const success = login(username, password);
+    try {
+      const success = await login(username, password);
       if (!success) {
         setError('Identifiant ou mot de passe incorrect');
       }
+    } catch (error) {
+      console.error('Login error:', error);
+      setError('Erreur de connexion');
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
   return (
@@ -97,6 +100,16 @@ const LoginPage = () => {
               )}
             </Button>
           </form>
+
+          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+            <p className="text-sm text-blue-800 mb-2">
+              <strong>Compte par défaut :</strong>
+            </p>
+            <p className="text-sm text-blue-700">
+              Identifiant : <code className="bg-blue-100 px-1 rounded">root</code><br/>
+              Mot de passe : <code className="bg-blue-100 px-1 rounded">p@$$w0rd</code>
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

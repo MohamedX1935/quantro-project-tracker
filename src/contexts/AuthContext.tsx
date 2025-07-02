@@ -1,5 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 
 export interface User {
   id: string;
@@ -14,7 +15,7 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   users: User[];
-  login: (username: string, password: string) => boolean;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   createUser: (userData: {
     username: string;
@@ -23,72 +24,37 @@ interface AuthContextType {
     email?: string;
     firstName?: string;
     lastName?: string;
-  }) => boolean;
-  deleteUser: (userId: string) => boolean;
+  }) => Promise<boolean>;
+  deleteUser: (userId: string) => Promise<boolean>;
   isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Données par défaut avec le compte root
-const defaultUsers: User[] = [
-  {
-    id: 'root',
-    username: 'root',
-    role: 'root',
-    createdAt: new Date().toISOString(),
-  }
-];
-
-const defaultPasswords: Record<string, string> = {
-  'root': 'p@$$w0rd'
-};
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [users, setUsers] = useState<User[]>(defaultUsers);
-  const [passwords, setPasswords] = useState<Record<string, string>>(defaultPasswords);
   const [isLoading, setIsLoading] = useState(true);
+  const { users, loginUser, createUser: createUserInDB, deleteUser: deleteUserFromDB, refreshUsers } = useSupabaseAuth();
 
   console.log('AuthProvider: Initializing...');
 
-  // Charger les données depuis localStorage au démarrage
+  // Charger l'utilisateur connecté depuis localStorage au démarrage
   useEffect(() => {
-    console.log('AuthProvider: Loading data from localStorage');
+    console.log('AuthProvider: Loading current user from localStorage');
     try {
-      const savedUsers = localStorage.getItem('quantro_users');
-      const savedPasswords = localStorage.getItem('quantro_passwords');
       const savedUser = localStorage.getItem('quantro_current_user');
-
-      if (savedUsers) {
-        console.log('AuthProvider: Found saved users');
-        setUsers(JSON.parse(savedUsers));
-      }
-      if (savedPasswords) {
-        console.log('AuthProvider: Found saved passwords');
-        setPasswords(JSON.parse(savedPasswords));
-      }
       if (savedUser) {
         console.log('AuthProvider: Found saved current user');
         setUser(JSON.parse(savedUser));
       }
     } catch (error) {
-      console.error('Error loading user data:', error);
+      console.error('Error loading current user:', error);
     } finally {
-      console.log('AuthProvider: Finished loading');
       setIsLoading(false);
     }
   }, []);
 
-  // Sauvegarder dans localStorage quand les données changent
-  useEffect(() => {
-    localStorage.setItem('quantro_users', JSON.stringify(users));
-  }, [users]);
-
-  useEffect(() => {
-    localStorage.setItem('quantro_passwords', JSON.stringify(passwords));
-  }, [passwords]);
-
+  // Sauvegarder l'utilisateur connecté dans localStorage
   useEffect(() => {
     if (user) {
       localStorage.setItem('quantro_current_user', JSON.stringify(user));
@@ -97,12 +63,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user]);
 
-  const login = (username: string, password: string): boolean => {
+  const login = async (username: string, password: string): Promise<boolean> => {
     console.log('AuthProvider: Login attempt for:', username);
-    const foundUser = users.find(u => u.username === username);
-    if (foundUser && passwords[username] === password) {
+    const loggedUser = await loginUser(username, password);
+    if (loggedUser) {
       console.log('AuthProvider: Login successful');
-      setUser(foundUser);
+      setUser(loggedUser);
       return true;
     }
     console.log('AuthProvider: Login failed');
@@ -115,47 +81,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem('quantro_current_user');
   };
 
-  const createUser = (userData: {
+  const createUser = async (userData: {
     username: string;
     password: string;
     role: 'admin' | 'employee';
     email?: string;
     firstName?: string;
     lastName?: string;
-  }): boolean => {
-    // Vérifier si l'utilisateur existe déjà
-    if (users.find(u => u.username === userData.username)) {
-      return false;
+  }): Promise<boolean> => {
+    const success = await createUserInDB(userData);
+    if (success) {
+      await refreshUsers();
     }
-
-    const newUser: User = {
-      id: Date.now().toString(),
-      username: userData.username,
-      role: userData.role,
-      email: userData.email,
-      firstName: userData.firstName,
-      lastName: userData.lastName,
-      createdAt: new Date().toISOString(),
-    };
-
-    setUsers(prev => [...prev, newUser]);
-    setPasswords(prev => ({ ...prev, [userData.username]: userData.password }));
-    return true;
+    return success;
   };
 
-  const deleteUser = (userId: string): boolean => {
-    const userToDelete = users.find(u => u.id === userId);
-    if (!userToDelete || userToDelete.role === 'root') {
-      return false;
+  const deleteUser = async (userId: string): Promise<boolean> => {
+    const success = await deleteUserFromDB(userId);
+    if (success) {
+      await refreshUsers();
     }
-
-    setUsers(prev => prev.filter(u => u.id !== userId));
-    setPasswords(prev => {
-      const newPasswords = { ...prev };
-      delete newPasswords[userToDelete.username];
-      return newPasswords;
-    });
-    return true;
+    return success;
   };
 
   if (isLoading) {
