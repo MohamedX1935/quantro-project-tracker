@@ -12,33 +12,41 @@ import TaskReportDialog from "./TaskReportDialog";
 import TaskDetailsDialog from "./TaskDetailsDialog";
 import ExtensionRequestStatus from "./ExtensionRequestStatus";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useEmployeeTasks } from "@/hooks/useEmployeeTasks";
 
 const EmployeeTasks = () => {
   const { user } = useAuth();
+  const { tasks: myTasks, isLoading, error, refreshTasks, updateTaskStatus } = useEmployeeTasks();
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<any>(null);
   const [extensionRequest, setExtensionRequest] = useState("");
   const [isExtensionDialogOpen, setIsExtensionDialogOpen] = useState(false);
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const [isTaskDetailsOpen, setIsTaskDetailsOpen] = useState(false);
-  const [myTasks, setMyTasks] = useState<any[]>([]); // Tableau vide - plus d'exemples
 
-  const handleCompleteTask = (task: any) => {
-    setSelectedTask(task);
-    setIsReportDialogOpen(true);
+  const handleCompleteTask = async (task: any) => {
+    try {
+      await updateTaskStatus(task.id, "Terminé");
+      setSelectedTask(task);
+      setIsReportDialogOpen(true);
+      
+      toast({
+        title: "Tâche terminée",
+        description: "La tâche a été marquée comme terminée avec succès.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de marquer la tâche comme terminée.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleTaskCompleted = () => {
-    // Marquer la tâche comme terminée
-    setMyTasks(prev => prev.map(task => 
-      task.id === selectedTask?.id 
-        ? { ...task, status: "Terminé" }
-        : task
-    ));
-
     toast({
-      title: "Tâche terminée",
-      description: "La tâche a été marquée comme terminée et le rapport a été généré avec succès.",
+      title: "Rapport soumis",
+      description: "Le rapport de tâche a été généré avec succès.",
     });
   };
 
@@ -75,16 +83,31 @@ const EmployeeTasks = () => {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case "Haute":
+      case "haute":
         return "text-red-600";
-      case "Moyenne":
+      case "moyenne":
         return "text-orange-600";
-      case "Normale":
+      case "basse":
         return "text-blue-600";
       default:
         return "text-gray-600";
     }
   };
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <AlertTriangle className="w-8 h-8 text-red-600" />
+        </div>
+        <h3 className="text-lg font-medium text-slate-900 mb-2">Erreur de chargement</h3>
+        <p className="text-slate-600 mb-4">{error}</p>
+        <Button onClick={refreshTasks}>
+          Réessayer
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <Tabs defaultValue="tasks" className="space-y-6">
@@ -161,7 +184,12 @@ const EmployeeTasks = () => {
           </CardHeader>
           
           <CardContent>
-            {myTasks.length > 0 ? (
+            {isLoading ? (
+              <div className="text-center py-12">
+                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-slate-600">Chargement des tâches...</p>
+              </div>
+            ) : myTasks.length > 0 ? (
               <div className="space-y-4">
                 {myTasks.map((task) => (
                   <div key={task.id} className="p-4 bg-slate-50/50 rounded-lg border border-slate-200">
@@ -178,12 +206,14 @@ const EmployeeTasks = () => {
                         </div>
                         <p className="text-sm text-slate-600 mb-2">{task.description}</p>
                         <div className="flex items-center gap-4 text-xs text-slate-500">
-                          <span>Projet: <strong>{task.project}</strong></span>
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            Échéance: {new Date(task.deadline).toLocaleDateString('fr-FR')}
-                          </span>
-                          <span>Assigné par: <strong>{task.assignedBy}</strong></span>
+                          <span>Projet: <strong>{task.project?.name || 'Non défini'}</strong></span>
+                          {task.deadline && (
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              Échéance: {new Date(task.deadline).toLocaleDateString('fr-FR')}
+                            </span>
+                          )}
+                          <span>Créé le: {new Date(task.created_at).toLocaleDateString('fr-FR')}</span>
                         </div>
                       </div>
                     </div>
@@ -260,6 +290,13 @@ const EmployeeTasks = () => {
                 </div>
                 <h3 className="text-lg font-medium text-slate-900 mb-2">Aucune tâche assignée</h3>
                 <p className="text-slate-600">Vos tâches assignées apparaîtront ici</p>
+                <Button 
+                  className="mt-4" 
+                  variant="outline" 
+                  onClick={refreshTasks}
+                >
+                  Actualiser
+                </Button>
               </div>
             )}
           </CardContent>
