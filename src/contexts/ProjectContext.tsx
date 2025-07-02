@@ -22,6 +22,7 @@ interface ProjectContextType {
     priority?: string;
     location?: string;
   }) => Promise<boolean>;
+  deleteProject: (projectId: string) => Promise<boolean>;
   refreshProjects: () => Promise<void>;
   isLoading: boolean;
   error: string | null;
@@ -111,6 +112,33 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const deleteProject = async (projectId: string): Promise<boolean> => {
+    console.log('ProjectProvider: deleteProject called with:', projectId);
+    
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', projectId);
+
+      if (error) {
+        console.error('Error deleting project:', error);
+        setError('Erreur lors de la suppression du projet: ' + error.message);
+        return false;
+      }
+
+      console.log('Project deleted successfully');
+      
+      // Rafraîchir immédiatement la liste des projets
+      await refreshProjects();
+      return true;
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      setError('Erreur lors de la suppression du projet.');
+      return false;
+    }
+  };
+
   useEffect(() => {
     console.log('ProjectProvider: useEffect called - loading projects');
     refreshProjects();
@@ -120,6 +148,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     <ProjectContext.Provider value={{
       projects,
       createProject,
+      deleteProject,
       refreshProjects,
       isLoading,
       error

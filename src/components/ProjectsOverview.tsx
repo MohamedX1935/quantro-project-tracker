@@ -5,17 +5,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Calendar, MapPin } from "lucide-react";
+import { Search, Plus, Calendar, MapPin, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import FilterDialog from "./FilterDialog";
 import CreateProjectDialog from "./CreateProjectDialog";
 import { useProjects } from "@/contexts/ProjectContext";
+import { useToast } from "@/hooks/use-toast";
 
 const ProjectsOverview = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateProject, setShowCreateProject] = useState(false);
   const navigate = useNavigate();
 
-  const { projects, isLoading } = useProjects();
+  const { projects, isLoading, deleteProject } = useProjects();
+  const { toast } = useToast();
 
   const filteredProjects = projects.filter(project =>
     project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -37,6 +40,22 @@ const ProjectsOverview = () => {
 
   const handleViewDetails = (project: any) => {
     navigate(`/project/${project.id}`);
+  };
+
+  const handleDeleteProject = async (projectId: string, projectName: string) => {
+    const success = await deleteProject(projectId);
+    if (success) {
+      toast({
+        title: "Projet supprimé",
+        description: `Le projet "${projectName}" a été supprimé avec succès.`,
+      });
+    } else {
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la suppression du projet.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (isLoading) {
@@ -86,9 +105,35 @@ const ProjectsOverview = () => {
                     {project.description}
                   </CardDescription>
                 </div>
-                <Badge className={`ml-2 text-xs ${getPriorityColor(project.priority)}`}>
-                  {project.priority}
-                </Badge>
+                <div className="flex items-center gap-2 ml-2">
+                  <Badge className={`text-xs ${getPriorityColor(project.priority)}`}>
+                    {project.priority}
+                  </Badge>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Supprimer le projet</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Êtes-vous sûr de vouloir supprimer le projet "{project.name}" ? Cette action est irréversible.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={() => handleDeleteProject(project.id, project.name)}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Supprimer
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </div>
             </CardHeader>
             
