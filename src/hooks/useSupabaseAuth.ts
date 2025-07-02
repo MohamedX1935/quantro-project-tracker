@@ -53,9 +53,17 @@ export const useSupabaseAuth = () => {
         return null;
       }
 
-      // Pour la démo, on utilise un mot de passe simple
-      // En production, il faudrait hasher et comparer les mots de passe
-      const validPassword = password === 'p@$$w0rd' || password === 'password';
+      // Vérifier le mot de passe - pour le root, on garde la logique existante
+      // Pour les autres utilisateurs, on compare directement avec le password_hash stocké
+      let validPassword = false;
+      
+      if (data.role === 'root') {
+        // Pour le root, on accepte les anciens mots de passe de test
+        validPassword = password === 'p@$$w0rd' || password === 'password';
+      } else {
+        // Pour les autres utilisateurs, on compare avec le password_hash stocké
+        validPassword = password === data.password_hash;
+      }
       
       if (!validPassword) {
         console.log('Invalid password for:', username);
@@ -92,7 +100,7 @@ export const useSupabaseAuth = () => {
         .from('app_users')
         .insert({
           username: userData.username,
-          password_hash: userData.password, // En production, hasher le mot de passe
+          password_hash: userData.password, // On stocke le mot de passe tel quel pour l'instant
           role: userData.role,
           email: userData.email,
           first_name: userData.firstName,
