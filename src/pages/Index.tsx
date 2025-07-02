@@ -81,40 +81,46 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
+      {/* Header */}
+      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
+            <div className="flex items-center space-x-4">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+                <span className="w-5 h-5 text-white font-bold">Q</span>
+              </div>
+              <div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                  TaskFlow Admin
+                  Quantro
                 </h1>
+                <p className="text-sm text-slate-600">Tableau de bord {user?.role === 'admin' ? 'Administrateur' : 'Employé'}</p>
               </div>
             </div>
+            
             <div className="flex items-center space-x-4">
+              <div className="text-right">
+                <p className="text-sm font-medium text-slate-900">
+                  {user?.first_name && user?.last_name 
+                    ? `${user.first_name} ${user.last_name}` 
+                    : user?.username}
+                </p>
+                <p className="text-xs text-slate-600 capitalize">{user?.role}</p>
+              </div>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                onClick={refreshStats}
-                disabled={statsLoading}
-                className="bg-white/80 backdrop-blur-sm border-slate-200"
+                onClick={logout}
+                className="text-slate-600 hover:text-slate-900 hover:bg-slate-100"
               >
-                <RefreshCw className={`w-4 h-4 mr-2 ${statsLoading ? 'animate-spin' : ''}`} />
-                Actualiser
+                <LogOut className="w-4 h-4 mr-2" />
+                Déconnexion
               </Button>
-              <span className="text-sm text-slate-600">
-                Bonjour, {user.firstName && user.lastName 
-                  ? `${user.firstName} ${user.lastName}` 
-                  : user.username}
-              </span>
-              <Badge className="bg-blue-100 text-blue-800 border-blue-200">
-                {user.role === 'root' ? 'Root' : 'Admin'}
-              </Badge>
             </div>
           </div>
         </div>
       </header>
 
+      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="grid w-full grid-cols-7 bg-white/60 backdrop-blur-sm border border-slate-200 shadow-sm">

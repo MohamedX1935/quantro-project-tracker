@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, MapPin, Users, CheckSquare, Clock, User, Plus, X, ArrowLeft, Save } from "lucide-react";
+import { Calendar, MapPin, Users, CheckSquare, Clock, User, Plus, X, ArrowLeft, Save, LogOut } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProjects } from "@/contexts/ProjectContext";
@@ -315,6 +315,14 @@ const ProjectDetails = () => {
             </div>
             
             <div className="flex items-center space-x-3">
+              <div className="text-right">
+                <p className="text-sm font-medium text-slate-900">
+                  {users.find(u => u.id === project.created_by)?.first_name && users.find(u => u.id === project.created_by)?.last_name 
+                    ? `${users.find(u => u.id === project.created_by)?.first_name} ${users.find(u => u.id === project.created_by)?.last_name}` 
+                    : users.find(u => u.id === project.created_by)?.username || 'Admin'}
+                </p>
+                <p className="text-xs text-slate-600">Administrateur</p>
+              </div>
               {hasUnsavedChanges && (
                 <span className="text-sm text-orange-600 font-medium">
                   Modifications non sauvegardées
@@ -327,6 +335,15 @@ const ProjectDetails = () => {
               >
                 <Save className="w-4 h-4 mr-2" />
                 {isSaving ? "Sauvegarde..." : "Enregistrer"}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/')}
+                className="text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Déconnexion
               </Button>
             </div>
           </div>
