@@ -18,60 +18,297 @@ const TaskReportsViewer = () => {
     setIsReportDialogOpen(true);
   };
 
-  const generateDocxFile = (report: any) => {
+  const generateDocxFile = async (report: any) => {
     const taskName = report.task?.title || 'Tache_Inconnue';
     const date = new Date(report.created_at).toISOString().split('T')[0];
     const fileName = `${taskName.replace(/[^a-zA-Z0-9]/g, '_')}_${date}.docx`;
     
-    // Créer le contenu du document avec formatage amélioré
-    const content = `RAPPORT DE FIN DE TÂCHE
-${'='.repeat(50)}
-
-INFORMATIONS GÉNÉRALES
-${'─'.repeat(25)}
-Tâche          : ${report.task?.title || 'Non défini'}
-Projet         : ${report.task?.project?.name || 'Non défini'}
-Date de création : ${new Date(report.created_at).toLocaleDateString('fr-FR')}
-Temps passé    : ${report.time_spent ? `${report.time_spent} heures` : 'Non renseigné'}
-Qualité        : ${report.quality_rating || 'Non évaluée'}
-Localisation   : ${report.location || 'Non spécifiée'}
-
-RÉSUMÉ DES TRAVAUX EFFECTUÉS
-${'─'.repeat(35)}
-${report.summary}
-
-${report.difficulties ? `DIFFICULTÉS RENCONTRÉES
-${'─'.repeat(30)}
-${report.difficulties}
-` : ''}
-${report.solutions ? `SOLUTIONS MISES EN ŒUVRE
-${'─'.repeat(30)}
-${report.solutions}
-` : ''}
-${report.recommendations ? `RECOMMANDATIONS
-${'─'.repeat(20)}
-${report.recommendations}
-` : ''}
-${report.generated_report ? `RAPPORT DÉTAILLÉ GÉNÉRÉ PAR IA
-${'─'.repeat(40)}
-${report.generated_report}
-` : ''}
-
-${'='.repeat(50)}
-Document généré automatiquement le ${new Date().toLocaleString('fr-FR')}
-${'='.repeat(50)}`;
-
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    return fileName;
+    try {
+      // Importer la bibliothèque docx dynamiquement
+      const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = await import('docx');
+      
+      // Créer les paragraphes du document
+      const paragraphs = [
+        // Titre principal
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: "RAPPORT DE FIN DE TÂCHE",
+              bold: true,
+              size: 32,
+            }),
+          ],
+          heading: HeadingLevel.TITLE,
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 400 },
+        }),
+        
+        // Section informations générales
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: "INFORMATIONS GÉNÉRALES",
+              bold: true,
+              size: 24,
+            }),
+          ],
+          heading: HeadingLevel.HEADING_1,
+          spacing: { before: 300, after: 200 },
+        }),
+        
+        new Paragraph({
+          children: [
+            new TextRun({ text: "Tâche : ", bold: true }),
+            new TextRun({ text: report.task?.title || 'Non défini' }),
+          ],
+          spacing: { after: 100 },
+        }),
+        
+        new Paragraph({
+          children: [
+            new TextRun({ text: "Projet : ", bold: true }),
+            new TextRun({ text: report.task?.project?.name || 'Non défini' }),
+          ],
+          spacing: { after: 100 },
+        }),
+        
+        new Paragraph({
+          children: [
+            new TextRun({ text: "Date de création : ", bold: true }),
+            new TextRun({ text: new Date(report.created_at).toLocaleDateString('fr-FR') }),
+          ],
+          spacing: { after: 100 },
+        }),
+        
+        new Paragraph({
+          children: [
+            new TextRun({ text: "Temps passé : ", bold: true }),
+            new TextRun({ text: report.time_spent ? `${report.time_spent} heures` : 'Non renseigné' }),
+          ],
+          spacing: { after: 100 },
+        }),
+        
+        new Paragraph({
+          children: [
+            new TextRun({ text: "Qualité : ", bold: true }),
+            new TextRun({ text: report.quality_rating || 'Non évaluée' }),
+          ],
+          spacing: { after: 100 },
+        }),
+        
+        new Paragraph({
+          children: [
+            new TextRun({ text: "Localisation : ", bold: true }),
+            new TextRun({ text: report.location || 'Non spécifiée' }),
+          ],
+          spacing: { after: 300 },
+        }),
+        
+        // Section résumé
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: "RÉSUMÉ DES TRAVAUX EFFECTUÉS",
+              bold: true,
+              size: 24,
+            }),
+          ],
+          heading: HeadingLevel.HEADING_1,
+          spacing: { before: 300, after: 200 },
+        }),
+        
+        new Paragraph({
+          children: [
+            new TextRun({ text: report.summary }),
+          ],
+          spacing: { after: 300 },
+        }),
+      ];
+      
+      // Ajouter les sections optionnelles
+      if (report.difficulties) {
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "DIFFICULTÉS RENCONTRÉES",
+                bold: true,
+                size: 24,
+              }),
+            ],
+            heading: HeadingLevel.HEADING_1,
+            spacing: { before: 300, after: 200 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: report.difficulties }),
+            ],
+            spacing: { after: 300 },
+          })
+        );
+      }
+      
+      if (report.solutions) {
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "SOLUTIONS MISES EN ŒUVRE",
+                bold: true,
+                size: 24,
+              }),
+            ],
+            heading: HeadingLevel.HEADING_1,
+            spacing: { before: 300, after: 200 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: report.solutions }),
+            ],
+            spacing: { after: 300 },
+          })
+        );
+      }
+      
+      if (report.recommendations) {
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "RECOMMANDATIONS",
+                bold: true,
+                size: 24,
+              }),
+            ],
+            heading: HeadingLevel.HEADING_1,
+            spacing: { before: 300, after: 200 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: report.recommendations }),
+            ],
+            spacing: { after: 300 },
+          })
+        );
+      }
+      
+      if (report.generated_report && report.generated_report.trim() && 
+          !report.generated_report.includes('non disponible') && 
+          !report.generated_report.includes('Erreur')) {
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "RAPPORT DÉTAILLÉ GÉNÉRÉ PAR IA",
+                bold: true,
+                size: 24,
+              }),
+            ],
+            heading: HeadingLevel.HEADING_1,
+            spacing: { before: 300, after: 200 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: report.generated_report }),
+            ],
+            spacing: { after: 300 },
+          })
+        );
+      }
+      
+      // Pied de page
+      paragraphs.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: `Document généré automatiquement le ${new Date().toLocaleString('fr-FR')}`,
+              italics: true,
+              size: 18,
+            }),
+          ],
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 400 },
+        })
+      );
+      
+      // Créer le document
+      const doc = new Document({
+        sections: [
+          {
+            children: paragraphs,
+          },
+        ],
+      });
+      
+      // Générer le blob
+      const blob = await Packer.toBlob(doc);
+      
+      // Télécharger le fichier
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      return fileName;
+    } catch (error) {
+      console.error('Error generating DOCX:', error);
+      
+      // Fallback vers un fichier RTF qui est compatible avec Word
+      const rtfContent = `{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0 Times New Roman;}}
+\\f0\\fs24 
+{\\b\\fs32\\qc RAPPORT DE FIN DE TÂCHE\\par}
+\\par
+{\\b\\fs28 INFORMATIONS GÉNÉRALES\\par}
+\\par
+{\\b Tâche :} ${report.task?.title || 'Non défini'}\\par
+{\\b Projet :} ${report.task?.project?.name || 'Non défini'}\\par
+{\\b Date :} ${new Date(report.created_at).toLocaleDateString('fr-FR')}\\par
+{\\b Temps passé :} ${report.time_spent ? `${report.time_spent} heures` : 'Non renseigné'}\\par
+{\\b Qualité :} ${report.quality_rating || 'Non évaluée'}\\par
+{\\b Localisation :} ${report.location || 'Non spécifiée'}\\par
+\\par
+{\\b\\fs28 RÉSUMÉ DES TRAVAUX EFFECTUÉS\\par}
+\\par
+${report.summary.replace(/\n/g, '\\par ')}\\par
+\\par
+${report.difficulties ? `{\\b\\fs28 DIFFICULTÉS RENCONTRÉES\\par}
+\\par
+${report.difficulties.replace(/\n/g, '\\par ')}\\par
+\\par` : ''}
+${report.solutions ? `{\\b\\fs28 SOLUTIONS MISES EN ŒUVRE\\par}
+\\par
+${report.solutions.replace(/\n/g, '\\par ')}\\par
+\\par` : ''}
+${report.recommendations ? `{\\b\\fs28 RECOMMANDATIONS\\par}
+\\par
+${report.recommendations.replace(/\n/g, '\\par ')}\\par
+\\par` : ''}
+${report.generated_report && report.generated_report.trim() && 
+  !report.generated_report.includes('non disponible') && 
+  !report.generated_report.includes('Erreur') ? 
+  `{\\b\\fs28 RAPPORT DÉTAILLÉ GÉNÉRÉ PAR IA\\par}
+\\par
+${report.generated_report.replace(/\n/g, '\\par ')}\\par
+\\par` : ''}
+{\\i\\qc Document généré automatiquement le ${new Date().toLocaleString('fr-FR')}\\par}
+}`;
+      
+      const blob = new Blob([rtfContent], { type: 'application/rtf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName.replace('.docx', '.rtf');
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      return fileName.replace('.docx', '.rtf');
+    }
   };
 
   const generatePdfFile = async (report: any) => {
@@ -193,7 +430,7 @@ ${report.generated_report || ''}`;
       let fileName = '';
       
       if (format === 'doc') {
-        fileName = generateDocxFile(report);
+        fileName = await generateDocxFile(report);
       } else {
         fileName = await generatePdfFile(report);
       }
