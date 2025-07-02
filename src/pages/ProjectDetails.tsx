@@ -317,8 +317,8 @@ const ProjectDetails = () => {
             <div className="flex items-center space-x-3">
               <div className="text-right">
                 <p className="text-sm font-medium text-slate-900">
-                  {users.find(u => u.id === project.created_by)?.first_name && users.find(u => u.id === project.created_by)?.last_name 
-                    ? `${users.find(u => u.id === project.created_by)?.first_name} ${users.find(u => u.id === project.created_by)?.last_name}` 
+                  {users.find(u => u.id === project.created_by)?.firstName && users.find(u => u.id === project.created_by)?.lastName 
+                    ? `${users.find(u => u.id === project.created_by)?.firstName} ${users.find(u => u.id === project.created_by)?.lastName}` 
                     : users.find(u => u.id === project.created_by)?.username || 'Admin'}
                 </p>
                 <p className="text-xs text-slate-600">Administrateur</p>

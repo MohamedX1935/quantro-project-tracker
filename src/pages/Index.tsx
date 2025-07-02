@@ -13,7 +13,8 @@ import {
   Clock,
   FileText,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  LogOut
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminStats } from "@/hooks/useAdminStats";
@@ -26,7 +27,7 @@ import TaskReportsViewer from "@/components/TaskReportsViewer";
 import EmployeeTasks from "@/components/EmployeeTasks";
 
 const Index = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { stats, isLoading: statsLoading, refreshStats } = useAdminStats();
   const [activeTab, setActiveTab] = useState("dashboard");
 
@@ -100,8 +101,8 @@ const Index = () => {
             <div className="flex items-center space-x-4">
               <div className="text-right">
                 <p className="text-sm font-medium text-slate-900">
-                  {user?.first_name && user?.last_name 
-                    ? `${user.first_name} ${user.last_name}` 
+                  {user?.firstName && user?.lastName 
+                    ? `${user.firstName} ${user.lastName}` 
                     : user?.username}
                 </p>
                 <p className="text-xs text-slate-600 capitalize">{user?.role}</p>
