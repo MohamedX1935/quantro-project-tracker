@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,10 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, MapPin, Users, CheckSquare, Clock, User, Plus, X, ArrowLeft } from "lucide-react";
+import { Calendar, MapPin, Users, CheckSquare, Clock, User, Plus, X, ArrowLeft, Save } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProjects } from "@/contexts/ProjectContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const ProjectDetails = () => {
   const { projectId } = useParams();
@@ -17,8 +17,11 @@ const ProjectDetails = () => {
   const [assignedEmployees, setAssignedEmployees] = useState<any[]>([]);
   const [projectTasks, setProjectTasks] = useState<any[]>([]);
   const [showCreateTask, setShowCreateTask] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const { users } = useAuth();
-  const { projects, isLoading } = useProjects();
+  const { projects, isLoading: projectsLoading } = useProjects();
 
   const project = projects.find(p => p.id === projectId);
 
@@ -28,26 +31,77 @@ const ProjectDetails = () => {
     !assignedEmployees.find(emp => emp.id === user.id)
   );
 
+  // Charger les données du projet
+  useEffect(() => {
+    if (projectId) {
+      loadProjectData();
+    }
+  }, [projectId]);
+
+  const loadProjectData = async () => {
+    if (!projectId) return;
+    
+    setIsLoading(true);
+    try {
+      // Charger les employés assignés
+      const { data: assignments } = await supabase
+        .from('project_assignments')
+        .select('employee_id')
+        .eq('project_id', projectId);
+
+      if (assignments) {
+        const assignedEmployeeIds = assignments.map(a => a.employee_id);
+        const assignedEmps = users.filter(user => assignedEmployeeIds.includes(user.id));
+        setAssignedEmployees(assignedEmps);
+      }
+
+      // Charger les tâches
+      const { data: tasks } = await supabase
+        .from('project_tasks')
+        .select('*')
+        .eq('project_id', projectId);
+
+      if (tasks) {
+        const tasksWithAssignees = tasks.map(task => ({
+          ...task,
+          assignee: task.assignee_id ? users.find(u => u.id === task.assignee_id) : null
+        }));
+        setProjectTasks(tasksWithAssignees);
+      }
+    } catch (error) {
+      console.error('Error loading project data:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les données du projet.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleAssignEmployee = (employee: any) => {
     setAssignedEmployees(prev => [...prev, employee]);
+    setHasUnsavedChanges(true);
     toast({
-      title: "Employé assigné",
+      title: "Employé assigné temporairement",
       description: `${employee.firstName && employee.lastName 
         ? `${employee.firstName} ${employee.lastName}` 
         : employee.username
-      } a été assigné au projet.`,
+      } sera assigné au projet après sauvegarde.`,
     });
   };
 
   const handleRemoveEmployee = (employeeId: string) => {
     const employee = assignedEmployees.find(emp => emp.id === employeeId);
     setAssignedEmployees(prev => prev.filter(emp => emp.id !== employeeId));
+    setHasUnsavedChanges(true);
     toast({
-      title: "Employé retiré",
+      title: "Employé retiré temporairement",
       description: `${employee?.firstName && employee?.lastName 
         ? `${employee.firstName} ${employee.lastName}` 
         : employee?.username
-      } a été retiré du projet.`,
+      } sera retiré du projet après sauvegarde.`,
     });
   };
 
@@ -57,17 +111,98 @@ const ProjectDetails = () => {
       title: taskData.title,
       description: taskData.description,
       assignee: taskData.assignee,
+      assignee_id: taskData.assignee?.id || null,
       status: "En cours",
       priority: taskData.priority,
       deadline: taskData.deadline,
-      reportSubmitted: false
+      project_id: projectId,
+      created_at: new Date().toISOString()
     };
     setProjectTasks(prev => [...prev, newTask]);
     setShowCreateTask(false);
+    setHasUnsavedChanges(true);
     toast({
-      title: "Tâche créée",
-      description: "La nouvelle tâche a été ajoutée au projet.",
+      title: "Tâche créée temporairement",
+      description: "La nouvelle tâche sera sauvegardée après enregistrement.",
     });
+  };
+
+  const handleSaveChanges = async () => {
+    if (!projectId) return;
+    
+    setIsSaving(true);
+    try {
+      // Sauvegarder les assignations d'employés
+      // D'abord supprimer les anciennes assignations
+      await supabase
+        .from('project_assignments')
+        .delete()
+        .eq('project_id', projectId);
+
+      // Ajouter les nouvelles assignations
+      if (assignedEmployees.length > 0) {
+        const assignmentsToInsert = assignedEmployees.map(emp => ({
+          project_id: projectId,
+          employee_id: emp.id,
+          assigned_at: new Date().toISOString()
+        }));
+
+        await supabase
+          .from('project_assignments')
+          .insert(assignmentsToInsert);
+      }
+
+      // Sauvegarder les tâches
+      // D'abord supprimer les anciennes tâches
+      await supabase
+        .from('project_tasks')
+        .delete()
+        .eq('project_id', projectId);
+
+      // Ajouter les nouvelles tâches
+      if (projectTasks.length > 0) {
+        const tasksToInsert = projectTasks.map(task => ({
+          id: task.id.startsWith('temp_') ? undefined : task.id,
+          project_id: projectId,
+          title: task.title,
+          description: task.description,
+          assignee_id: task.assignee_id,
+          status: task.status,
+          priority: task.priority,
+          deadline: task.deadline,
+          created_at: task.created_at
+        }));
+
+        await supabase
+          .from('project_tasks')
+          .insert(tasksToInsert);
+      }
+
+      setHasUnsavedChanges(false);
+      toast({
+        title: "Modifications sauvegardées",
+        description: "Toutes les modifications ont été enregistrées avec succès.",
+      });
+    } catch (error) {
+      console.error('Error saving changes:', error);
+      toast({
+        title: "Erreur de sauvegarde",
+        description: "Impossible de sauvegarder les modifications.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleGoBack = () => {
+    if (hasUnsavedChanges) {
+      if (confirm("Vous avez des modifications non sauvegardées. Voulez-vous vraiment quitter sans sauvegarder ?")) {
+        navigate('/');
+      }
+    } else {
+      navigate('/');
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -96,7 +231,7 @@ const ProjectDetails = () => {
     }
   };
 
-  if (isLoading) {
+  if (projectsLoading || isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
         <div className="flex items-center justify-center py-12">
@@ -124,18 +259,36 @@ const ProjectDetails = () => {
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-16">
-            <Button
-              variant="ghost"
-              onClick={() => navigate('/')}
-              className="mr-4 text-slate-600 hover:bg-slate-100"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Retour
-            </Button>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900">{project.name}</h1>
-              <p className="text-sm text-slate-600">{project.description}</p>
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center">
+              <Button
+                variant="ghost"
+                onClick={handleGoBack}
+                className="mr-4 text-slate-600 hover:bg-slate-100"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Retour
+              </Button>
+              <div>
+                <h1 className="text-xl font-bold text-slate-900">{project.name}</h1>
+                <p className="text-sm text-slate-600">{project.description}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              {hasUnsavedChanges && (
+                <span className="text-sm text-orange-600 font-medium">
+                  Modifications non sauvegardées
+                </span>
+              )}
+              <Button
+                onClick={handleSaveChanges}
+                disabled={!hasUnsavedChanges || isSaving}
+                className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {isSaving ? "Sauvegarde..." : "Enregistrer"}
+              </Button>
             </div>
           </div>
         </div>
