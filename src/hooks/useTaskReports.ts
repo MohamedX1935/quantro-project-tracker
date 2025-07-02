@@ -102,11 +102,23 @@ export const useTaskReports = () => {
     try {
       console.log('Creating task report with data:', reportData);
       
+      // Récupérer les informations de l'employé
+      const { data: employeeData } = await supabase
+        .from('app_users')
+        .select('first_name, last_name, username')
+        .eq('id', user.id)
+        .single();
+
+      const employeeName = employeeData 
+        ? `${employeeData.first_name || ''} ${employeeData.last_name || ''}`.trim() || employeeData.username
+        : 'Employé non identifié';
+      
       // Générer le rapport avec l'IA
       const generatedReport = await generateAIReport({
         ...reportData,
         task_title: reportData.task_title,
-        project_name: reportData.project_name
+        project_name: reportData.project_name,
+        employee_name: employeeName
       });
 
       console.log('Generated AI report successfully, inserting into database...');
@@ -147,7 +159,7 @@ export const useTaskReports = () => {
     try {
       console.log('Calling generate-report function with data:', reportData);
       
-      const response = await supabase.functions.invoke('generate-report', {
+       const response = await supabase.functions.invoke('generate-report', {
         body: {
           summary: reportData.summary,
           difficulties: reportData.difficulties,
@@ -157,7 +169,8 @@ export const useTaskReports = () => {
           quality_rating: reportData.quality_rating,
           location: reportData.location,
           task_title: reportData.task_title,
-          project_name: reportData.project_name
+          project_name: reportData.project_name,
+          employee_name: reportData.employee_name
         }
       });
 

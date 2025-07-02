@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { summary, difficulties, solutions, recommendations, time_spent, quality_rating, location, task_title, project_name } = await req.json()
+    const { summary, difficulties, solutions, recommendations, time_spent, quality_rating, location, task_title, project_name, employee_name } = await req.json()
 
     console.log('Generating report for task:', task_title, 'in project:', project_name)
 
@@ -22,6 +22,7 @@ serve(async (req) => {
 INFORMATIONS DE LA TÂCHE :
 - Titre : ${task_title || 'Tâche non spécifiée'}
 - Projet : ${project_name || 'Projet non spécifié'}
+- Employé : ${employee_name || 'Non spécifié'}
 - Localisation : ${location || 'Non spécifiée'}
 - Temps passé : ${time_spent || 'Non spécifié'} heures
 - Qualité auto-évaluée : ${quality_rating || 'Non renseignée'}
@@ -114,7 +115,7 @@ Utilisez un style formel et professionnel. Le rapport doit faire environ 300-500
 
     if (!response || !response.ok) {
       console.log('Falling back to default report')
-      const fallbackReport = generateFallbackReport(summary, difficulties, solutions, recommendations, time_spent, quality_rating, location, task_title, project_name)
+      const fallbackReport = generateFallbackReport(summary, difficulties, solutions, recommendations, time_spent, quality_rating, location, task_title, project_name, employee_name)
       return new Response(
         JSON.stringify({ generatedReport: fallbackReport }), 
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -132,7 +133,7 @@ Utilisez un style formel et professionnel. Le rapport doit faire environ 300-500
       generatedReport = result.generated_text.trim()
     } else {
       console.log('No valid response from AI, using fallback')
-      generatedReport = generateFallbackReport(summary, difficulties, solutions, recommendations, time_spent, quality_rating, location, task_title, project_name)
+      generatedReport = generateFallbackReport(summary, difficulties, solutions, recommendations, time_spent, quality_rating, location, task_title, project_name, employee_name)
     }
 
     // Nettoyer le rapport généré
@@ -149,8 +150,8 @@ Utilisez un style formel et professionnel. Le rapport doit faire environ 300-500
     console.error('Error in generate-report function:', error)
     
     // En cas d'erreur, générer un rapport de base
-    const { summary, difficulties, solutions, recommendations, time_spent, quality_rating, location, task_title, project_name } = await req.json().catch(() => ({}))
-    const fallbackReport = generateFallbackReport(summary, difficulties, solutions, recommendations, time_spent, quality_rating, location, task_title, project_name)
+    const { summary, difficulties, solutions, recommendations, time_spent, quality_rating, location, task_title, project_name, employee_name } = await req.json().catch(() => ({}))
+    const fallbackReport = generateFallbackReport(summary, difficulties, solutions, recommendations, time_spent, quality_rating, location, task_title, project_name, employee_name)
     
     return new Response(
       JSON.stringify({ 
@@ -171,7 +172,7 @@ function cleanGeneratedReport(report: string): string {
     .trim()
 }
 
-function generateFallbackReport(summary: string, difficulties: string, solutions: string, recommendations: string, time_spent: number, quality_rating: string, location: string, task_title?: string, project_name?: string): string {
+function generateFallbackReport(summary: string, difficulties: string, solutions: string, recommendations: string, time_spent: number, quality_rating: string, location: string, task_title?: string, project_name?: string, employee_name?: string): string {
   const currentDate = new Date().toLocaleDateString('fr-FR', { 
     weekday: 'long', 
     year: 'numeric', 
@@ -189,6 +190,7 @@ function generateFallbackReport(summary: string, difficulties: string, solutions
 • Date d'émission    : ${currentDate}
 • Tâche              : ${task_title || 'Non spécifiée'}
 • Projet             : ${project_name || 'Non spécifié'}
+• Employé            : ${employee_name || 'Non spécifié'}
 • Localisation       : ${location || 'Non spécifiée'}
 • Temps consacré     : ${time_spent ? `${time_spent} heures` : 'Non renseigné'}
 • Auto-évaluation    : ${quality_rating || 'Non renseignée'}
