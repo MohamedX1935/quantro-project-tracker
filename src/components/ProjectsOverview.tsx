@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,14 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Search, Plus, Calendar, MapPin } from "lucide-react";
 import FilterDialog from "./FilterDialog";
 import CreateProjectDialog from "./CreateProjectDialog";
-import ProjectDetailsDialog from "./ProjectDetailsDialog";
 import { useProjects } from "@/contexts/ProjectContext";
 
 const ProjectsOverview = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateProject, setShowCreateProject] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<any>(null);
-  const [showProjectDetails, setShowProjectDetails] = useState(false);
+  const navigate = useNavigate();
 
   const { projects, isLoading } = useProjects();
 
@@ -37,8 +36,7 @@ const ProjectsOverview = () => {
   };
 
   const handleViewDetails = (project: any) => {
-    setSelectedProject(project);
-    setShowProjectDetails(true);
+    navigate(`/project/${project.id}`);
   };
 
   if (isLoading) {
@@ -124,12 +122,6 @@ const ProjectsOverview = () => {
       <CreateProjectDialog 
         open={showCreateProject}
         onOpenChange={setShowCreateProject}
-      />
-
-      <ProjectDetailsDialog 
-        project={selectedProject}
-        open={showProjectDetails}
-        onOpenChange={setShowProjectDetails}
       />
 
       {filteredProjects.length === 0 && !isLoading && (

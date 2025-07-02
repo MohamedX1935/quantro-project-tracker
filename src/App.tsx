@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ProjectProvider } from "@/contexts/ProjectContext";
 import Index from "./pages/Index";
+import ProjectDetails from "./pages/ProjectDetails";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./components/LoginPage";
 import UserManagement from "./components/UserManagement";
@@ -64,6 +65,7 @@ const AppContent = () => {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/project/:projectId" element={<ProjectDetails />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
