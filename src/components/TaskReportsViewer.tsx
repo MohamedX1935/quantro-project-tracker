@@ -18,23 +18,119 @@ const TaskReportsViewer = () => {
     setIsReportDialogOpen(true);
   };
 
+  const generateDocxFile = (report: any) => {
+    const taskName = report.task?.title || 'Tache_Inconnue';
+    const date = new Date(report.created_at).toISOString().split('T')[0];
+    const fileName = `${taskName.replace(/[^a-zA-Z0-9]/g, '_')}_${date}.docx`;
+    
+    // Créer le contenu du document
+    const content = `
+RAPPORT DE TÂCHE
+================
+
+Tâche: ${report.task?.title || 'Non défini'}
+Projet: ${report.task?.project?.name || 'Non défini'}
+Date de création: ${new Date(report.created_at).toLocaleDateString('fr-FR')}
+Temps passé: ${report.time_spent ? `${report.time_spent}h` : 'Non renseigné'}
+Qualité: ${report.quality_rating || 'Non évaluée'}
+
+RÉSUMÉ DES TRAVAUX
+==================
+${report.summary}
+
+${report.difficulties ? `DIFFICULTÉS RENCONTRÉES
+========================
+${report.difficulties}` : ''}
+
+${report.solutions ? `SOLUTIONS APPORTÉES
+===================
+${report.solutions}` : ''}
+
+${report.recommendations ? `RECOMMANDATIONS
+===============
+${report.recommendations}` : ''}
+
+${report.generated_report ? `RAPPORT GÉNÉRÉ PAR IA
+=====================
+${report.generated_report}` : ''}
+    `;
+
+    const blob = new Blob([content], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    return fileName;
+  };
+
+  const generatePdfFile = (report: any) => {
+    const taskName = report.task?.title || 'Tache_Inconnue';
+    const date = new Date(report.created_at).toISOString().split('T')[0];
+    const fileName = `${taskName.replace(/[^a-zA-Z0-9]/g, '_')}_${date}.pdf`;
+    
+    // Créer le contenu du document
+    const content = `
+RAPPORT DE TÂCHE
+================
+
+Tâche: ${report.task?.title || 'Non défini'}
+Projet: ${report.task?.project?.name || 'Non défini'}
+Date de création: ${new Date(report.created_at).toLocaleDateString('fr-FR')}
+Temps passé: ${report.time_spent ? `${report.time_spent}h` : 'Non renseigné'}
+Qualité: ${report.quality_rating || 'Non évaluée'}
+
+RÉSUMÉ DES TRAVAUX
+==================
+${report.summary}
+
+${report.difficulties ? `DIFFICULTÉS RENCONTRÉES
+========================
+${report.difficulties}` : ''}
+
+${report.solutions ? `SOLUTIONS APPORTÉES
+===================
+${report.solutions}` : ''}
+
+${report.recommendations ? `RECOMMANDATIONS
+===============
+${report.recommendations}` : ''}
+
+${report.generated_report ? `RAPPORT GÉNÉRÉ PAR IA
+=====================
+${report.generated_report}` : ''}
+    `;
+
+    const blob = new Blob([content], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    return fileName;
+  };
+
   const handleDownloadReport = async (report: any, format: 'doc' | 'pdf') => {
     try {
-      // Simulation du téléchargement - en production, il faudrait implémenter la génération réelle
-      const content = report.generated_report || 'Rapport non disponible';
-      const blob = new Blob([content], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `rapport-${report.task?.title || 'tache'}-${new Date().toISOString().split('T')[0]}.${format === 'doc' ? 'txt' : 'txt'}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      let fileName = '';
+      
+      if (format === 'doc') {
+        fileName = generateDocxFile(report);
+      } else {
+        fileName = generatePdfFile(report);
+      }
       
       toast({
         title: "Téléchargement réussi",
-        description: `Le rapport a été téléchargé au format ${format.toUpperCase()}.`,
+        description: `Le rapport ${fileName} a été téléchargé.`,
       });
     } catch (error) {
       toast({

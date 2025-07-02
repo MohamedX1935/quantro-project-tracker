@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Calendar, MapPin, Search, Plus, Calendar as CalendarIcon, Trash2, Lock } from "lucide-react";
+import { Calendar, MapPin, Search, Plus, Calendar as CalendarIcon, Trash2, Lock, Eye } from "lucide-react";
 import { useAdminTasks } from "@/hooks/useAdminTasks";
 import { useTaskReports } from "@/hooks/useTaskReports";
 import { toast } from "@/hooks/use-toast";
@@ -87,6 +87,14 @@ const TasksManager = () => {
     }
   };
 
+  const handleViewReport = (taskId: string) => {
+    const taskReport = getTaskReport(taskId);
+    if (taskReport) {
+      // Ouvrir le rapport dans une nouvelle fenêtre ou modal
+      window.open(`data:text/html,<pre>${taskReport.generated_report || 'Rapport non disponible'}</pre>`, '_blank');
+    }
+  };
+
   const getTaskReport = (taskId: string) => {
     return reports.find(report => report.task_id === taskId);
   };
@@ -154,9 +162,14 @@ const TasksManager = () => {
                           {new Date(task.deadline).toLocaleDateString('fr-FR')}
                         </span>
                       )}
-                      {task.assignee_id && (
+                      {task.assignee && (
                         <span className="text-xs">
-                          Assigné à: {task.assignee_id}
+                          Assigné à: {task.assignee.first_name} {task.assignee.last_name}
+                        </span>
+                      )}
+                      {task.created_by_user && (
+                        <span className="text-xs">
+                          Créé par: {task.created_by_user.first_name} {task.created_by_user.last_name}
                         </span>
                       )}
                     </div>
@@ -185,8 +198,9 @@ const TasksManager = () => {
                               variant="outline" 
                               size="sm"
                               className="bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700"
-                              onClick={() => console.log('Voir rapport', taskReport)}
+                              onClick={() => handleViewReport(task.id)}
                             >
+                              <Eye className="w-4 h-4 mr-2" />
                               Voir rapport
                             </Button>
                           )}

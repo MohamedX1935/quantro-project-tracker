@@ -41,9 +41,9 @@ export const useTaskReports = () => {
         .from('task_reports')
         .select(`
           *,
-          project_tasks (
+          project_tasks!task_reports_task_id_fkey (
             title,
-            projects (
+            projects!project_tasks_project_id_fkey (
               name
             )
           )
@@ -63,7 +63,19 @@ export const useTaskReports = () => {
       }
 
       console.log('Task reports fetched:', data);
-      setReports(data || []);
+      
+      // Transformer les données pour correspondre à l'interface TaskReport
+      const transformedReports = data?.map(report => ({
+        ...report,
+        task: {
+          title: report.project_tasks?.title || 'Titre non disponible',
+          project: {
+            name: report.project_tasks?.projects?.name || 'Projet non défini'
+          }
+        }
+      })) || [];
+
+      setReports(transformedReports);
     } catch (error) {
       console.error('Error fetching task reports:', error);
       setError('Erreur de connexion');
@@ -122,20 +134,24 @@ export const useTaskReports = () => {
 
   const generateAIReport = async (reportData: any): Promise<string> => {
     try {
-      const response = await fetch('/api/generate-report', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(reportData),
+      const response = await supabase.functions.invoke('generate-report', {
+        body: {
+          summary: reportData.summary,
+          difficulties: reportData.difficulties,
+          solutions: reportData.solutions,
+          recommendations: reportData.recommendations,
+          time_spent: reportData.time_spent,
+          quality_rating: reportData.quality_rating,
+          location: reportData.location
+        }
       });
 
-      if (!response.ok) {
-        throw new Error('Erreur lors de la génération du rapport');
+      if (response.error) {
+        console.error('Error calling generate-report function:', response.error);
+        return 'Rapport généré automatiquement non disponible.';
       }
 
-      const result = await response.json();
-      return result.generatedReport;
+      return response.data?.generatedReport || 'Rapport généré automatiquement non disponible.';
     } catch (error) {
       console.error('Error generating AI report:', error);
       return 'Rapport généré automatiquement non disponible.';

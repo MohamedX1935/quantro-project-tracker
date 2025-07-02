@@ -40,9 +40,9 @@ export const useExtensionRequests = () => {
         .from('extension_requests')
         .select(`
           *,
-          project_tasks (
+          project_tasks!extension_requests_task_id_fkey (
             title,
-            projects (
+            projects!project_tasks_project_id_fkey (
               name
             )
           )
@@ -53,7 +53,7 @@ export const useExtensionRequests = () => {
         query = query.eq('employee_id', user.id);
       }
 
-      const { data, error } = await query.order('created_at', { ascending: false });
+      const { data: requestsData, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching extension requests:', error);
@@ -61,8 +61,42 @@ export const useExtensionRequests = () => {
         return;
       }
 
-      console.log('Extension requests fetched:', data);
-      setRequests(data || []);
+      // Récupérer les informations des employés pour les demandes (côté admin)
+      const employeeIds = [...new Set(requestsData?.map(req => req.employee_id) || [])];
+      let employeesData: any[] = [];
+
+      if (employeeIds.length > 0 && user?.role === 'admin') {
+        const { data: employees, error: employeesError } = await supabase
+          .from('app_users')
+          .select('id, first_name, last_name')
+          .in('id', employeeIds);
+
+        if (!employeesError) {
+          employeesData = employees || [];
+        }
+      }
+
+      // Transformer les données pour correspondre à l'interface
+      const transformedRequests = requestsData?.map(request => {
+        const employee = employeesData.find(emp => emp.id === request.employee_id);
+        
+        return {
+          ...request,
+          task: {
+            title: request.project_tasks?.title || 'Tâche non trouvée',
+            project: {
+              name: request.project_tasks?.projects?.name || 'Projet non défini'
+            }
+          },
+          employee: employee ? {
+            first_name: employee.first_name || '',
+            last_name: employee.last_name || ''
+          } : undefined
+        };
+      }) || [];
+
+      console.log('Extension requests fetched:', transformedRequests);
+      setRequests(transformedRequests);
     } catch (error) {
       console.error('Error fetching extension requests:', error);
       setError('Erreur de connexion');
@@ -122,11 +156,64 @@ export const useExtensionRequests = () => {
         return false;
       }
 
+      // Si la demande est approuvée, mettre à jour la deadline de la tâche
+      if (status === 'Approuvée') {
+        const request = requests.find(r => r.id === requestId);
+        if (request) {
+          await updateTaskDeadline(request.task_id, request.requested_extension);
+        }
+      }
+
       await fetchExtensionRequests();
       return true;
     } catch (error) {
       console.error('Error updating extension request:', error);
       return false;
+    }
+  };
+
+  const updateTaskDeadline = async (taskId: string, extension: string | null) => {
+    if (!extension) return;
+
+    try {
+      // Récupérer la deadline actuelle de la tâche
+      const { data: task, error: fetchError } = await supabase
+        .from('project_tasks')
+        .select('deadline')
+        .eq('id', taskId)
+        .single();
+
+      if (fetchError || !task) {
+        console.error('Error fetching task deadline:', fetchError);
+        return;
+      }
+
+      // Calculer la nouvelle deadline
+      const currentDeadline = new Date(task.deadline);
+      let newDeadline = new Date(currentDeadline);
+
+      // Parser l'extension demandée
+      if (extension.includes('jour')) {
+        const days = parseInt(extension);
+        newDeadline.setDate(currentDeadline.getDate() + days);
+      } else if (extension.includes('semaine')) {
+        const weeks = parseInt(extension);
+        newDeadline.setDate(currentDeadline.getDate() + (weeks * 7));
+      }
+
+      // Mettre à jour la deadline de la tâche
+      const { error: updateError } = await supabase
+        .from('project_tasks')
+        .update({ deadline: newDeadline.toISOString().split('T')[0] })
+        .eq('id', taskId);
+
+      if (updateError) {
+        console.error('Error updating task deadline:', updateError);
+      } else {
+        console.log('Task deadline updated successfully');
+      }
+    } catch (error) {
+      console.error('Error updating task deadline:', error);
     }
   };
 

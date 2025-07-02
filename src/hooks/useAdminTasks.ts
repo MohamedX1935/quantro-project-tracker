@@ -16,8 +16,13 @@ export interface AdminTask {
   closed_by_admin: boolean | null;
   project?: {
     name: string;
+    created_by: string;
   };
   assignee?: {
+    first_name: string;
+    last_name: string;
+  };
+  created_by_user?: {
     first_name: string;
     last_name: string;
   };
@@ -37,8 +42,9 @@ export const useAdminTasks = () => {
         .from('project_tasks')
         .select(`
           *,
-          projects (
-            name
+          projects!project_tasks_project_id_fkey (
+            name,
+            created_by
           )
         `)
         .order('created_at', { ascending: false });
@@ -49,8 +55,60 @@ export const useAdminTasks = () => {
         return;
       }
 
-      console.log('Admin tasks fetched successfully:', data);
-      setTasks(data || []);
+      // Récupérer les informations des créateurs de projets
+      const creatorIds = [...new Set(data?.map(task => task.projects?.created_by).filter(Boolean) || [])];
+      let creatorsData: any[] = [];
+
+      if (creatorIds.length > 0) {
+        const { data: creators, error: creatorsError } = await supabase
+          .from('app_users')
+          .select('id, first_name, last_name')
+          .in('id', creatorIds);
+
+        if (!creatorsError) {
+          creatorsData = creators || [];
+        }
+      }
+
+      // Récupérer les informations des assignés
+      const assigneeIds = [...new Set(data?.map(task => task.assignee_id).filter(Boolean) || [])];
+      let assigneesData: any[] = [];
+
+      if (assigneeIds.length > 0) {
+        const { data: assignees, error: assigneesError } = await supabase
+          .from('app_users')
+          .select('id, first_name, last_name')
+          .in('id', assigneeIds);
+
+        if (!assigneesError) {
+          assigneesData = assignees || [];
+        }
+      }
+
+      // Transformer les données
+      const transformedTasks = data?.map(task => {
+        const creator = creatorsData.find(c => c.id === task.projects?.created_by);
+        const assignee = assigneesData.find(a => a.id === task.assignee_id);
+
+        return {
+          ...task,
+          project: task.projects ? {
+            name: task.projects.name,
+            created_by: task.projects.created_by
+          } : undefined,
+          created_by_user: creator ? {
+            first_name: creator.first_name || '',
+            last_name: creator.last_name || ''
+          } : undefined,
+          assignee: assignee ? {
+            first_name: assignee.first_name || '',
+            last_name: assignee.last_name || ''
+          } : undefined
+        };
+      }) || [];
+
+      console.log('Admin tasks fetched successfully:', transformedTasks);
+      setTasks(transformedTasks);
     } catch (error) {
       console.error('Error fetching admin tasks:', error);
       setError('Erreur de connexion');

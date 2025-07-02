@@ -65,7 +65,7 @@ const EmployeeTasks = () => {
     const taskDetails = {
       ...task,
       project: task.project?.name || "Projet non défini",
-      assignedBy: "Administrateur",
+      assignedBy: "Administrateur", // Ce sera mis à jour dans TaskDetailsDialog
       createdAt: task.created_at
     };
     setSelectedTask(taskDetails);

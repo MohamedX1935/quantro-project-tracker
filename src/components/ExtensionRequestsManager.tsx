@@ -21,7 +21,7 @@ const ExtensionRequestsManager = () => {
       if (success) {
         toast({
           title: "Demande approuvée",
-          description: "La demande de prolongation a été approuvée.",
+          description: "La demande de prolongation a été approuvée et la deadline mise à jour.",
         });
       }
     } catch (error) {
@@ -111,7 +111,12 @@ const ExtensionRequestsManager = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
                         <div className="space-y-1">
                           <div className="text-sm text-slate-600">
-                            Employé: <strong>ID {request.employee_id}</strong>
+                            Employé: <strong>
+                              {request.employee?.first_name && request.employee?.last_name 
+                                ? `${request.employee.first_name} ${request.employee.last_name}`
+                                : `ID ${request.employee_id}`
+                              }
+                            </strong>
                           </div>
                           <div className="text-sm text-slate-600">
                             Projet: <strong>{request.task?.project?.name || 'Non défini'}</strong>
@@ -194,7 +199,10 @@ const ExtensionRequestsManager = () => {
               <strong>Tâche:</strong> {selectedRequest?.task?.title}
             </div>
             <div>
-              <strong>Employé:</strong> ID {selectedRequest?.employee_id}
+              <strong>Employé:</strong> {selectedRequest?.employee?.first_name && selectedRequest?.employee?.last_name 
+                ? `${selectedRequest.employee.first_name} ${selectedRequest.employee.last_name}`
+                : `ID ${selectedRequest?.employee_id}`
+              }
             </div>
             <Textarea
               placeholder="Expliquez les raisons du rejet et donnez des conseils..."
