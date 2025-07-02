@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProjects } from "@/contexts/ProjectContext";
 import { supabase } from "@/integrations/supabase/client";
+import ProjectTaskActions from "@/components/ProjectTaskActions";
 
 const ProjectDetails = () => {
   const { projectId } = useParams();
@@ -131,6 +131,20 @@ const ProjectDetails = () => {
       title: "Tâche créée temporairement",
       description: "La nouvelle tâche sera sauvegardée après enregistrement.",
     });
+  };
+
+  const handleTaskDeleted = (taskId: string) => {
+    setProjectTasks(prev => prev.filter(task => task.id !== taskId));
+  };
+
+  const handleTaskClosed = (taskId: string) => {
+    setProjectTasks(prev => 
+      prev.map(task => 
+        task.id === taskId 
+          ? { ...task, closed_by_admin: true, updated_at: new Date().toISOString() }
+          : task
+      )
+    );
   };
 
   const handleSaveChanges = async () => {
@@ -462,6 +476,11 @@ const ProjectDetails = () => {
                           <Badge className={`text-xs ${getPriorityColor(task.priority)}`}>
                             {task.priority}
                           </Badge>
+                          {task.closed_by_admin && (
+                            <Badge className="text-xs bg-gray-100 text-gray-800">
+                              Clôturée
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-sm text-slate-600 mb-2">{task.description}</p>
                         <div className="flex items-center space-x-4 text-xs text-slate-500">
@@ -477,6 +496,12 @@ const ProjectDetails = () => {
                           </span>
                         </div>
                       </div>
+                      
+                      <ProjectTaskActions
+                        task={task}
+                        onTaskDeleted={handleTaskDeleted}
+                        onTaskClosed={handleTaskClosed}
+                      />
                     </div>
                   </CardContent>
                 </Card>

@@ -1,61 +1,77 @@
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { BarChart3, Users, Calendar, MapPin, Plus, Settings, LogOut, CheckSquare, FileText, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { 
+  Users, 
+  FolderOpen, 
+  CheckSquare, 
+  TrendingUp, 
+  Calendar,
+  Clock,
+  FileText,
+  AlertCircle,
+  RefreshCw
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdminStats } from "@/hooks/useAdminStats";
+import TasksManager from "@/components/TasksManager";
 import ProjectsOverview from "@/components/ProjectsOverview";
 import TeamDashboard from "@/components/TeamDashboard";
-import CreateProjectDialog from "@/components/CreateProjectDialog";
-import EmployeeTasks from "@/components/EmployeeTasks";
+import UserManagement from "@/components/UserManagement";
 import ExtensionRequestsManager from "@/components/ExtensionRequestsManager";
+import TaskReportsViewer from "@/components/TaskReportsViewer";
+import EmployeeTasks from "@/components/EmployeeTasks";
 
 const Index = () => {
-  const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState(user?.role === 'admin' ? "dashboard" : "tasks");
-  const [showCreateProject, setShowCreateProject] = useState(false);
+  const { user } = useAuth();
+  const { stats, isLoading: statsLoading, refreshStats } = useAdminStats();
+  const [activeTab, setActiveTab] = useState("dashboard");
 
-  // Interface pour les employés
-  if (user?.role === 'employee') {
+  // Auto-refresh stats every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshStats();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [refreshStats]);
+
+  if (!user) {
+    return <div>Chargement...</div>;
+  }
+
+  const isAdmin = user.role === 'admin' || user.role === 'root';
+
+  if (!isAdmin) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-        {/* Header pour employé */}
         <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <div className="flex items-center space-x-4">
-                <div className="w-8 h-8 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg flex items-center justify-center">
-                  <CheckSquare className="w-5 h-5 text-white" />
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                    TaskFlow
+                  </h1>
                 </div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                  Quantro - Mes Tâches
-                </h1>
               </div>
-              
               <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2 text-sm text-slate-600">
-                  <span>Connecté en tant que <strong>{user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.username}</strong></span>
-                  <Badge variant="secondary">Employé</Badge>
-                </div>
-
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={logout}
-                  className="text-slate-600 hover:bg-slate-100"
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Déconnexion
-                </Button>
+                <span className="text-sm text-slate-600">
+                  Bonjour, {user.firstName && user.lastName 
+                    ? `${user.firstName} ${user.lastName}` 
+                    : user.username}
+                </span>
+                <Badge className="bg-green-100 text-green-800 border-green-200">
+                  Employé
+                </Badge>
               </div>
             </div>
           </div>
         </header>
 
-        {/* Interface employé */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <EmployeeTasks />
         </main>
@@ -63,187 +79,229 @@ const Index = () => {
     );
   }
 
-  // Interface pour les administrateurs
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-                <BarChart3 className="w-5 h-5 text-white" />
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  TaskFlow Admin
+                </h1>
               </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                Quantro - Administration
-              </h1>
             </div>
-            
             <div className="flex items-center space-x-4">
               <Button
-                onClick={() => setShowCreateProject(true)}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-200"
+                variant="outline"
+                size="sm"
+                onClick={refreshStats}
+                disabled={statsLoading}
+                className="bg-white/80 backdrop-blur-sm border-slate-200"
               >
-                <Plus className="w-4 h-4 mr-2" />
-                Nouveau Projet
+                <RefreshCw className={`w-4 h-4 mr-2 ${statsLoading ? 'animate-spin' : ''}`} />
+                Actualiser
               </Button>
-              
-              <Button variant="ghost" size="icon" className="text-slate-600 hover:bg-slate-100">
-                <Settings className="w-5 h-5" />
-              </Button>
-
-              <div className="flex items-center space-x-2 text-sm text-slate-600">
-                <span>Connecté en tant que <strong>{user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.username}</strong></span>
-                <Badge variant="default">Admin</Badge>
-              </div>
-
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={logout}
-                className="text-slate-600 hover:bg-slate-100"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Déconnexion
-              </Button>
+              <span className="text-sm text-slate-600">
+                Bonjour, {user.firstName && user.lastName 
+                  ? `${user.firstName} ${user.lastName}` 
+                  : user.username}
+              </span>
+              <Badge className="bg-blue-100 text-blue-800 border-blue-200">
+                {user.role === 'root' ? 'Root' : 'Admin'}
+              </Badge>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content pour admin */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-white/60 backdrop-blur-sm border border-slate-200 shadow-sm">
-            <TabsTrigger 
-              value="dashboard" 
-              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
-            >
-              <BarChart3 className="w-4 h-4" />
-              Tableau de bord
-            </TabsTrigger>
-            <TabsTrigger 
-              value="projects" 
-              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
-            >
-              <Calendar className="w-4 h-4" />
-              Projets
-            </TabsTrigger>
-            <TabsTrigger 
-              value="team" 
-              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
-            >
-              <Users className="w-4 h-4" />
-              Équipe
-            </TabsTrigger>
-            <TabsTrigger 
-              value="extensions" 
-              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
-            >
-              <Clock className="w-4 h-4" />
-              Prolongations
-            </TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList className="grid w-full grid-cols-7 bg-white/60 backdrop-blur-sm border border-slate-200 shadow-sm">
+            <TabsTrigger value="dashboard">Tableau de bord</TabsTrigger>
+            <TabsTrigger value="projects">Projets</TabsTrigger>
+            <TabsTrigger value="tasks">Tâches</TabsTrigger>
+            <TabsTrigger value="team">Équipe</TabsTrigger>
+            <TabsTrigger value="extensions">Prolongations</TabsTrigger>
+            <TabsTrigger value="reports">Rapports</TabsTrigger>
+            {user.role === 'root' && <TabsTrigger value="users">Utilisateurs</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* Stats Cards */}
-              <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+            {/* Statistiques principales */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-600">
-                    Projets Actifs
-                  </CardTitle>
-                  <Calendar className="h-4 w-4 text-blue-600" />
+                  <CardTitle className="text-sm font-medium text-slate-600">Projets Actifs</CardTitle>
+                  <FolderOpen className="h-4 w-4 text-blue-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-slate-900">0</div>
+                  <div className="text-2xl font-bold text-slate-900">{stats.activeProjects}</div>
                   <p className="text-xs text-slate-500">
-                    Aucun projet créé
+                    sur {stats.totalProjects} projets au total
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+              <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-600">
-                    Tâches Terminées
-                  </CardTitle>
-                  <div className="h-4 w-4 bg-green-100 rounded-full flex items-center justify-center">
-                    <div className="h-2 w-2 bg-green-600 rounded-full"></div>
-                  </div>
+                  <CardTitle className="text-sm font-medium text-slate-600">Tâches Terminées</CardTitle>
+                  <CheckSquare className="h-4 w-4 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-slate-900">0</div>
+                  <div className="text-2xl font-bold text-slate-900">{stats.completedTasks}</div>
                   <p className="text-xs text-slate-500">
-                    Aucune tâche terminée
+                    sur {stats.totalTasks} tâches au total
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+              <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-600">
-                    Employés Actifs
-                  </CardTitle>
+                  <CardTitle className="text-sm font-medium text-slate-600">Employés Actifs</CardTitle>
                   <Users className="h-4 w-4 text-indigo-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-slate-900">0</div>
+                  <div className="text-2xl font-bold text-slate-900">{stats.activeEmployees}</div>
                   <p className="text-xs text-slate-500">
-                    Aucun employé assigné
+                    sur {stats.totalEmployees} employés
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+              <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-600">
-                    Taux de Réussite
-                  </CardTitle>
-                  <div className="h-4 w-4 bg-blue-100 rounded-full flex items-center justify-center">
-                    <BarChart3 className="h-3 w-3 text-blue-600" />
-                  </div>
+                  <CardTitle className="text-sm font-medium text-slate-600">Taux de Réussite</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-emerald-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-slate-900">-</div>
+                  <div className="text-2xl font-bold text-slate-900">{stats.successRate}%</div>
+                  <p className="text-xs text-slate-500">Tâches terminées</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Statistiques secondaires */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-slate-600">Demandes de Prolongation</CardTitle>
+                  <Clock className="h-4 w-4 text-orange-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-slate-900">{stats.pendingExtensionRequests}</div>
+                  <p className="text-xs text-slate-500">En attente de traitement</p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-slate-600">Rapports Générés</CardTitle>
+                  <FileText className="h-4 w-4 text-purple-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-slate-900">{stats.reportsGenerated}</div>
+                  <p className="text-xs text-slate-500">Rapports de tâches</p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-slate-600">Dernière Mise à Jour</CardTitle>
+                  <RefreshCw className="h-4 w-4 text-slate-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-lg font-bold text-slate-900">
+                    {new Date().toLocaleTimeString('fr-FR', { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </div>
                   <p className="text-xs text-slate-500">
-                    Pas de données
+                    {new Date().toLocaleDateString('fr-FR')}
                   </p>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Recent Projects */}
-            <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold text-slate-900">
-                  Projets Récents
-                </CardTitle>
-                <CardDescription className="text-slate-600">
-                  Vue d'ensemble de vos projets en cours
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Calendar className="w-8 h-8 text-slate-400" />
+            {/* Aperçu rapide */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold text-slate-900">
+                    Résumé des Activités
+                  </CardTitle>
+                  <CardDescription>
+                    Vue d'ensemble des activités récentes
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600">Projets en cours</span>
+                    <Badge className="bg-blue-100 text-blue-800">
+                      {stats.activeProjects}
+                    </Badge>
                   </div>
-                  <h3 className="text-lg font-medium text-slate-900 mb-2">Aucun projet récent</h3>
-                  <p className="text-slate-600 mb-4">Créez votre premier projet pour commencer</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600">Tâches à traiter</span>
+                    <Badge className="bg-yellow-100 text-yellow-800">
+                      {stats.totalTasks - stats.completedTasks}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600">Demandes en attente</span>
+                    <Badge className="bg-orange-100 text-orange-800">
+                      {stats.pendingExtensionRequests}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold text-slate-900">
+                    Actions Rapides
+                  </CardTitle>
+                  <CardDescription>
+                    Accès rapide aux fonctionnalités principales
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
                   <Button 
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                    onClick={() => setShowCreateProject(true)}
+                    className="w-full justify-start" 
+                    variant="outline"
+                    onClick={() => setActiveTab("projects")}
                   >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Créer un projet
+                    <FolderOpen className="w-4 h-4 mr-2" />
+                    Gérer les projets
                   </Button>
-                </div>
-              </CardContent>
-            </Card>
+                  <Button 
+                    className="w-full justify-start" 
+                    variant="outline"
+                    onClick={() => setActiveTab("tasks")}
+                  >
+                    <CheckSquare className="w-4 h-4 mr-2" />
+                    Gérer les tâches
+                  </Button>
+                  <Button 
+                    className="w-full justify-start" 
+                    variant="outline"
+                    onClick={() => setActiveTab("extensions")}
+                  >
+                    <Clock className="w-4 h-4 mr-2" />
+                    Demandes de prolongation
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="projects">
             <ProjectsOverview />
+          </TabsContent>
+
+          <TabsContent value="tasks">
+            <TasksManager />
           </TabsContent>
 
           <TabsContent value="team">
@@ -253,13 +311,18 @@ const Index = () => {
           <TabsContent value="extensions">
             <ExtensionRequestsManager />
           </TabsContent>
+
+          <TabsContent value="reports">
+            <TaskReportsViewer />
+          </TabsContent>
+
+          {user.role === 'root' && (
+            <TabsContent value="users">
+              <UserManagement />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
-
-      <CreateProjectDialog 
-        open={showCreateProject}
-        onOpenChange={setShowCreateProject}
-      />
     </div>
   );
 };
