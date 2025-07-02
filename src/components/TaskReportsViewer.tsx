@@ -350,7 +350,9 @@ ${report.generated_report || ''}`;
               </div>
             )}
 
-            {selectedReport?.generated_report && (
+            {selectedReport?.generated_report && selectedReport.generated_report.trim() && 
+             !selectedReport.generated_report.includes('non disponible') && 
+             !selectedReport.generated_report.includes('Erreur') && (
               <div className="p-4 bg-white border rounded-lg">
                 <h4 className="font-medium mb-2">Rapport généré par IA</h4>
                 <div className="text-sm text-slate-700 whitespace-pre-line">
