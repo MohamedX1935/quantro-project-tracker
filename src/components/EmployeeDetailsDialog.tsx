@@ -14,7 +14,7 @@ interface EmployeeDetailsDialogProps {
 const EmployeeDetailsDialog = ({ employee, open, onOpenChange }: EmployeeDetailsDialogProps) => {
   if (!employee) return null;
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string = "Actif") => {
     switch (status) {
       case "Actif":
         return "bg-green-100 text-green-800 border-green-200";
@@ -27,6 +27,14 @@ const EmployeeDetailsDialog = ({ employee, open, onOpenChange }: EmployeeDetails
     }
   };
 
+  const employeeDisplayName = employee.firstName && employee.lastName 
+    ? `${employee.firstName} ${employee.lastName}` 
+    : employee.username;
+
+  const employeeInitials = employee.firstName && employee.lastName 
+    ? `${employee.firstName[0]}${employee.lastName[0]}` 
+    : employee.username.slice(0, 2).toUpperCase();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -34,14 +42,16 @@ const EmployeeDetailsDialog = ({ employee, open, onOpenChange }: EmployeeDetails
           <div className="flex items-center space-x-4">
             <Avatar className="w-16 h-16">
               <AvatarFallback className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-lg font-semibold">
-                {employee.initials}
+                {employeeInitials}
               </AvatarFallback>
             </Avatar>
             <div>
-              <DialogTitle className="text-xl">{employee.name}</DialogTitle>
-              <DialogDescription className="text-base">{employee.role}</DialogDescription>
-              <Badge className={`mt-1 ${getStatusColor(employee.status)}`}>
-                {employee.status}
+              <DialogTitle className="text-xl">{employeeDisplayName}</DialogTitle>
+              <DialogDescription className="text-base">
+                {employee.role === 'employee' ? 'Employé' : employee.role}
+              </DialogDescription>
+              <Badge className={`mt-1 ${getStatusColor("Actif")}`}>
+                Actif
               </Badge>
             </div>
           </div>
@@ -55,16 +65,18 @@ const EmployeeDetailsDialog = ({ employee, open, onOpenChange }: EmployeeDetails
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center text-sm">
-                <Mail className="w-4 h-4 mr-3 text-slate-500" />
-                <span>{employee.email}</span>
+                <User className="w-4 h-4 mr-3 text-slate-500" />
+                <span>@{employee.username}</span>
               </div>
-              <div className="flex items-center text-sm">
-                <MapPin className="w-4 h-4 mr-3 text-slate-500" />
-                <span>{employee.location}</span>
-              </div>
+              {employee.email && (
+                <div className="flex items-center text-sm">
+                  <Mail className="w-4 h-4 mr-3 text-slate-500" />
+                  <span>{employee.email}</span>
+                </div>
+              )}
               <div className="flex items-center text-sm">
                 <Calendar className="w-4 h-4 mr-3 text-slate-500" />
-                <span>Dernière activité: {employee.lastActivity}</span>
+                <span>Créé le: {new Date(employee.created_at || Date.now()).toLocaleDateString('fr-FR')}</span>
               </div>
             </CardContent>
           </Card>
@@ -77,7 +89,7 @@ const EmployeeDetailsDialog = ({ employee, open, onOpenChange }: EmployeeDetails
                 <Clock className="h-4 w-4 text-blue-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{employee.currentTasks}</div>
+                <div className="text-2xl font-bold">0</div>
                 <p className="text-xs text-slate-500">En cours</p>
               </CardContent>
             </Card>
@@ -88,7 +100,7 @@ const EmployeeDetailsDialog = ({ employee, open, onOpenChange }: EmployeeDetails
                 <CheckSquare className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{employee.completedTasks}</div>
+                <div className="text-2xl font-bold">0</div>
                 <p className="text-xs text-slate-500">Au total</p>
               </CardContent>
             </Card>
@@ -100,13 +112,8 @@ const EmployeeDetailsDialog = ({ employee, open, onOpenChange }: EmployeeDetails
               <CardTitle className="text-sm font-medium">Projets assignés</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 gap-2">
-                {employee.projects.map((project: string, index: number) => (
-                  <div key={index} className="flex items-center justify-between p-2 bg-slate-50 rounded">
-                    <span className="text-sm font-medium">{project}</span>
-                    <Badge variant="secondary" className="text-xs">Actif</Badge>
-                  </div>
-                ))}
+              <div className="text-center py-8 text-slate-500">
+                Aucun projet assigné pour le moment
               </div>
             </CardContent>
           </Card>
@@ -119,19 +126,25 @@ const EmployeeDetailsDialog = ({ employee, open, onOpenChange }: EmployeeDetails
             <CardContent>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm">Taux de completion</span>
+                  <span className="text-sm">Statut</span>
+                  <Badge className={getStatusColor("Actif")}>
+                    Actif
+                  </Badge>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm">Rôle</span>
                   <span className="text-sm font-medium">
-                    {Math.round((employee.completedTasks / (employee.completedTasks + employee.currentTasks)) * 100)}%
+                    {employee.role === 'employee' ? 'Employé' : employee.role}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Projets actifs</span>
-                  <span className="text-sm font-medium">{employee.projects.length}</span>
+                  <span className="text-sm font-medium">0</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Charge de travail</span>
-                  <Badge variant={employee.currentTasks > 6 ? "destructive" : employee.currentTasks > 3 ? "default" : "secondary"}>
-                    {employee.currentTasks > 6 ? "Élevée" : employee.currentTasks > 3 ? "Normale" : "Faible"}
+                  <Badge variant="secondary">
+                    Faible
                   </Badge>
                 </div>
               </div>
