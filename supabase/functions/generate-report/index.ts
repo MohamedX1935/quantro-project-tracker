@@ -12,58 +12,109 @@ serve(async (req) => {
   }
 
   try {
-    const { summary, difficulties, solutions, recommendations, time_spent, quality_rating, location } = await req.json()
+    const { summary, difficulties, solutions, recommendations, time_spent, quality_rating, location, task_title, project_name } = await req.json()
 
-    const prompt = `
-Générez un rapport professionnel détaillé de fin de tâche basé sur les informations suivantes :
+    console.log('Generating report for task:', task_title, 'in project:', project_name)
 
-RÉSUMÉ DES TRAVAUX :
+    // Prompt optimisé pour générer un rapport professionnel structuré
+    const prompt = `<s>[INST] Vous êtes un assistant professionnel spécialisé dans la rédaction de rapports de fin de tâche. Générez un rapport détaillé et structuré basé sur les informations suivantes :
+
+INFORMATIONS DE LA TÂCHE :
+- Titre : ${task_title || 'Tâche non spécifiée'}
+- Projet : ${project_name || 'Projet non spécifié'}
+- Localisation : ${location || 'Non spécifiée'}
+- Temps passé : ${time_spent || 'Non spécifié'} heures
+- Qualité auto-évaluée : ${quality_rating || 'Non renseignée'}
+
+RÉSUMÉ DES TRAVAUX EFFECTUÉS :
 ${summary}
 
 DIFFICULTÉS RENCONTRÉES :
 ${difficulties || 'Aucune difficulté particulière signalée'}
 
-SOLUTIONS APPORTÉES :
-${solutions || 'Aucune solution spécifique mentionnée'}
+SOLUTIONS MISES EN ŒUVRE :
+${solutions || 'Méthodes standards appliquées'}
 
 RECOMMANDATIONS :
 ${recommendations || 'Aucune recommandation particulière'}
 
-TEMPS PASSÉ : ${time_spent || 'Non spécifié'} heures
-QUALITÉ DU TRAVAIL : ${quality_rating || 'Non évaluée'}
-LIEU DE TRAVAIL : ${location || 'Non spécifié'}
+Rédigez un rapport professionnel avec les sections suivantes :
+1. EN-TÊTE avec les informations de base
+2. RÉSUMÉ EXÉCUTIF (2-3 phrases)
+3. DESCRIPTION DES TRAVAUX RÉALISÉS
+4. DIFFICULTÉS ET SOLUTIONS
+5. RECOMMANDATIONS POUR L'AVENIR
+6. CONCLUSION
 
-Le rapport doit être structuré, professionnel et complet, avec une introduction, un développement détaillé des points mentionnés, et une conclusion. Utilisez un ton formel et technique approprié pour un environnement professionnel.
-`
+Utilisez un style formel et professionnel. Le rapport doit faire environ 300-500 mots. [/INST]</s>`
 
     const HUGGING_FACE_TOKEN = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN')
     
     if (!HUGGING_FACE_TOKEN) {
+      console.error('HUGGING_FACE_ACCESS_TOKEN not configured')
       throw new Error('Token Hugging Face non configuré')
     }
 
-    const response = await fetch(
-      "https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium",
-      {
-        headers: {
-          "Authorization": `Bearer ${HUGGING_FACE_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        method: "POST",
-        body: JSON.stringify({
-          inputs: prompt,
-          parameters: {
-            max_new_tokens: 1000,
-            temperature: 0.7,
-            do_sample: true
-          }
-        }),
-      }
-    )
+    // Utilisation d'un modèle plus performant pour la génération de texte
+    const modelUrl = "https://api-inference.huggingface.co/models/microsoft/Phi-3-mini-4k-instruct"
+    
+    console.log('Calling Hugging Face API with model:', modelUrl)
 
-    if (!response.ok) {
-      // Fallback en cas d'erreur avec l'API
-      const fallbackReport = generateFallbackReport(summary, difficulties, solutions, recommendations, time_spent, quality_rating, location)
+    let retryCount = 0
+    const maxRetries = 3
+    let response
+
+    // Système de retry pour gérer les erreurs temporaires
+    while (retryCount < maxRetries) {
+      try {
+        response = await fetch(modelUrl, {
+          headers: {
+            "Authorization": `Bearer ${HUGGING_FACE_TOKEN}`,
+            "Content-Type": "application/json",
+          },
+          method: "POST",
+          body: JSON.stringify({
+            inputs: prompt,
+            parameters: {
+              max_new_tokens: 800,
+              temperature: 0.3,
+              do_sample: true,
+              top_p: 0.9,
+              repetition_penalty: 1.1,
+              return_full_text: false
+            },
+            options: {
+              wait_for_model: true
+            }
+          }),
+        })
+
+        if (response.ok) {
+          break
+        } else if (response.status === 503) {
+          console.log(`Model loading, retry ${retryCount + 1}/${maxRetries}`)
+          retryCount++
+          if (retryCount < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 2000 * retryCount))
+            continue
+          }
+        } else {
+          console.error('API error:', response.status, await response.text())
+          throw new Error(`API returned status ${response.status}`)
+        }
+      } catch (error) {
+        console.error(`Attempt ${retryCount + 1} failed:`, error)
+        retryCount++
+        if (retryCount >= maxRetries) {
+          throw error
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount))
+      }
+    }
+
+    if (!response || !response.ok) {
+      console.log('Falling back to default report')
+      const fallbackReport = generateFallbackReport(summary, difficulties, solutions, recommendations, time_spent, quality_rating, location, task_title, project_name)
       return new Response(
         JSON.stringify({ generatedReport: fallbackReport }), 
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -71,13 +122,23 @@ Le rapport doit être structuré, professionnel et complet, avec une introductio
     }
 
     const result = await response.json()
+    console.log('Hugging Face API response:', result)
+    
     let generatedReport = ''
 
-    if (result && result.length > 0 && result[0].generated_text) {
-      generatedReport = result[0].generated_text
+    if (result && Array.isArray(result) && result.length > 0 && result[0].generated_text) {
+      generatedReport = result[0].generated_text.trim()
+    } else if (result && result.generated_text) {
+      generatedReport = result.generated_text.trim()
     } else {
-      generatedReport = generateFallbackReport(summary, difficulties, solutions, recommendations, time_spent, quality_rating, location)
+      console.log('No valid response from AI, using fallback')
+      generatedReport = generateFallbackReport(summary, difficulties, solutions, recommendations, time_spent, quality_rating, location, task_title, project_name)
     }
+
+    // Nettoyer le rapport généré
+    generatedReport = cleanGeneratedReport(generatedReport)
+
+    console.log('Generated report length:', generatedReport.length)
 
     return new Response(
       JSON.stringify({ generatedReport }), 
@@ -85,48 +146,85 @@ Le rapport doit être structuré, professionnel et complet, avec une introductio
     )
 
   } catch (error) {
-    console.error('Error generating report:', error)
+    console.error('Error in generate-report function:', error)
     
     // En cas d'erreur, générer un rapport de base
-    const fallbackReport = "Rapport de fin de tâche généré automatiquement.\n\nLes détails fournis ont été enregistrés et le travail a été complété selon les spécifications demandées."
+    const { summary, difficulties, solutions, recommendations, time_spent, quality_rating, location, task_title, project_name } = await req.json().catch(() => ({}))
+    const fallbackReport = generateFallbackReport(summary, difficulties, solutions, recommendations, time_spent, quality_rating, location, task_title, project_name)
     
     return new Response(
-      JSON.stringify({ generatedReport: fallbackReport }), 
+      JSON.stringify({ 
+        generatedReport: fallbackReport,
+        warning: 'Rapport généré en mode de secours suite à une erreur technique'
+      }), 
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })
 
-function generateFallbackReport(summary: string, difficulties: string, solutions: string, recommendations: string, time_spent: number, quality_rating: string, location: string): string {
+function cleanGeneratedReport(report: string): string {
+  // Nettoyer le rapport des balises et artifacts indésirables
+  return report
+    .replace(/\[INST\]|\[\/INST\]|<s>|<\/s>/g, '')
+    .replace(/^\s*Assistant:\s*/i, '')
+    .replace(/^\s*Voici le rapport.*?:\s*/i, '')
+    .trim()
+}
+
+function generateFallbackReport(summary: string, difficulties: string, solutions: string, recommendations: string, time_spent: number, quality_rating: string, location: string, task_title?: string, project_name?: string): string {
+  const currentDate = new Date().toLocaleDateString('fr-FR', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  })
+  
   return `
-RAPPORT DE FIN DE TÂCHE
-=======================
+═══════════════════════════════════════════════════════════════
+                    RAPPORT DE FIN DE TÂCHE
+═══════════════════════════════════════════════════════════════
 
-DATE: ${new Date().toLocaleDateString('fr-FR')}
-LIEU: ${location || 'Non spécifié'}
+📋 INFORMATIONS GÉNÉRALES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Date d'émission    : ${currentDate}
+• Tâche              : ${task_title || 'Non spécifiée'}
+• Projet             : ${project_name || 'Non spécifié'}
+• Localisation       : ${location || 'Non spécifiée'}
+• Temps consacré     : ${time_spent ? `${time_spent} heures` : 'Non renseigné'}
+• Auto-évaluation    : ${quality_rating || 'Non renseignée'}
 
-1. RÉSUMÉ DES TRAVAUX EFFECTUÉS
+📝 RÉSUMÉ EXÉCUTIF
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Les travaux demandés ont été réalisés selon les spécifications établies. 
+Cette mission s'est déroulée dans de bonnes conditions et a permis d'atteindre 
+les objectifs fixés.
+
+🔧 DESCRIPTION DES TRAVAUX RÉALISÉS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${summary}
 
-2. TEMPS CONSACRÉ
-Durée totale: ${time_spent || 'Non spécifié'} heures
+${difficulties ? `⚠️ DIFFICULTÉS RENCONTRÉES ET SOLUTIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Difficultés identifiées :
+${difficulties}
 
-3. DIFFICULTÉS RENCONTRÉES
-${difficulties || 'Aucune difficulté particulière n\'a été rencontrée lors de la réalisation de cette tâche.'}
+Solutions mises en œuvre :
+${solutions || 'Des solutions appropriées ont été appliquées pour résoudre les difficultés rencontrées.'}
+` : ''}
 
-4. SOLUTIONS MISES EN ŒUVRE
-${solutions || 'Les méthodes standard ont été appliquées pour mener à bien cette tâche.'}
+${recommendations ? `💡 RECOMMANDATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${recommendations}
+` : ''}
 
-5. RECOMMANDATIONS
-${recommendations || 'Aucune recommandation particulière à signaler.'}
+✅ CONCLUSION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Mission accomplie avec succès. Les objectifs ont été atteints dans les 
+conditions requises et dans les délais impartis. Les livrables sont 
+conformes aux attentes exprimées.
 
-6. ÉVALUATION QUALITÉ
-Auto-évaluation: ${quality_rating || 'Non renseignée'}
-
-7. CONCLUSION
-La tâche a été réalisée conformément aux spécifications demandées. Tous les objectifs ont été atteints dans les délais impartis.
-
----
-Rapport généré automatiquement
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Rapport automatiquement généré le ${new Date().toLocaleString('fr-FR')}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   `.trim()
 }

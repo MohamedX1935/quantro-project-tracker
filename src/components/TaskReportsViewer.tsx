@@ -23,39 +23,45 @@ const TaskReportsViewer = () => {
     const date = new Date(report.created_at).toISOString().split('T')[0];
     const fileName = `${taskName.replace(/[^a-zA-Z0-9]/g, '_')}_${date}.docx`;
     
-    // Créer le contenu du document
-    const content = `
-RAPPORT DE TÂCHE
-================
+    // Créer le contenu du document avec formatage amélioré
+    const content = `RAPPORT DE FIN DE TÂCHE
+${'='.repeat(50)}
 
-Tâche: ${report.task?.title || 'Non défini'}
-Projet: ${report.task?.project?.name || 'Non défini'}
-Date de création: ${new Date(report.created_at).toLocaleDateString('fr-FR')}
-Temps passé: ${report.time_spent ? `${report.time_spent}h` : 'Non renseigné'}
-Qualité: ${report.quality_rating || 'Non évaluée'}
+INFORMATIONS GÉNÉRALES
+${'─'.repeat(25)}
+Tâche          : ${report.task?.title || 'Non défini'}
+Projet         : ${report.task?.project?.name || 'Non défini'}
+Date de création : ${new Date(report.created_at).toLocaleDateString('fr-FR')}
+Temps passé    : ${report.time_spent ? `${report.time_spent} heures` : 'Non renseigné'}
+Qualité        : ${report.quality_rating || 'Non évaluée'}
+Localisation   : ${report.location || 'Non spécifiée'}
 
-RÉSUMÉ DES TRAVAUX
-==================
+RÉSUMÉ DES TRAVAUX EFFECTUÉS
+${'─'.repeat(35)}
 ${report.summary}
 
 ${report.difficulties ? `DIFFICULTÉS RENCONTRÉES
-========================
-${report.difficulties}` : ''}
-
-${report.solutions ? `SOLUTIONS APPORTÉES
-===================
-${report.solutions}` : ''}
-
+${'─'.repeat(30)}
+${report.difficulties}
+` : ''}
+${report.solutions ? `SOLUTIONS MISES EN ŒUVRE
+${'─'.repeat(30)}
+${report.solutions}
+` : ''}
 ${report.recommendations ? `RECOMMANDATIONS
-===============
-${report.recommendations}` : ''}
+${'─'.repeat(20)}
+${report.recommendations}
+` : ''}
+${report.generated_report ? `RAPPORT DÉTAILLÉ GÉNÉRÉ PAR IA
+${'─'.repeat(40)}
+${report.generated_report}
+` : ''}
 
-${report.generated_report ? `RAPPORT GÉNÉRÉ PAR IA
-=====================
-${report.generated_report}` : ''}
-    `;
+${'='.repeat(50)}
+Document généré automatiquement le ${new Date().toLocaleString('fr-FR')}
+${'='.repeat(50)}`;
 
-    const blob = new Blob([content], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -68,54 +74,118 @@ ${report.generated_report}` : ''}
     return fileName;
   };
 
-  const generatePdfFile = (report: any) => {
+  const generatePdfFile = async (report: any) => {
     const taskName = report.task?.title || 'Tache_Inconnue';
     const date = new Date(report.created_at).toISOString().split('T')[0];
     const fileName = `${taskName.replace(/[^a-zA-Z0-9]/g, '_')}_${date}.pdf`;
     
-    // Créer le contenu du document
-    const content = `
-RAPPORT DE TÂCHE
-================
+    try {
+      // Importer jsPDF dynamiquement
+      const { jsPDF } = await import('jspdf');
+      const doc = new jsPDF();
+      
+      // Configuration de la page
+      const pageWidth = doc.internal.pageSize.width;
+      const margin = 20;
+      const maxLineWidth = pageWidth - (margin * 2);
+      let currentY = 30;
+      
+      // Fonction pour ajouter du texte avec retour à la ligne automatique
+      const addTextWithWrap = (text: string, fontSize: number = 12, fontStyle: 'normal' | 'bold' = 'normal') => {
+        doc.setFontSize(fontSize);
+        doc.setFont('helvetica', fontStyle);
+        const lines = doc.splitTextToSize(text, maxLineWidth);
+        doc.text(lines, margin, currentY);
+        currentY += lines.length * (fontSize * 0.5) + 5;
+        
+        // Vérifier si on doit changer de page
+        if (currentY > doc.internal.pageSize.height - 30) {
+          doc.addPage();
+          currentY = 30;
+        }
+      };
+      
+      // En-tête du document
+      addTextWithWrap('RAPPORT DE FIN DE TÂCHE', 18, 'bold');
+      currentY += 10;
+      
+      // Informations générales
+      addTextWithWrap('INFORMATIONS GÉNÉRALES', 14, 'bold');
+      addTextWithWrap(`Tâche: ${report.task?.title || 'Non défini'}`);
+      addTextWithWrap(`Projet: ${report.task?.project?.name || 'Non défini'}`);
+      addTextWithWrap(`Date: ${new Date(report.created_at).toLocaleDateString('fr-FR')}`);
+      addTextWithWrap(`Temps passé: ${report.time_spent ? `${report.time_spent} heures` : 'Non renseigné'}`);
+      addTextWithWrap(`Qualité: ${report.quality_rating || 'Non évaluée'}`);
+      addTextWithWrap(`Localisation: ${report.location || 'Non spécifiée'}`);
+      currentY += 10;
+      
+      // Résumé des travaux
+      addTextWithWrap('RÉSUMÉ DES TRAVAUX EFFECTUÉS', 14, 'bold');
+      addTextWithWrap(report.summary);
+      currentY += 10;
+      
+      // Difficultés
+      if (report.difficulties) {
+        addTextWithWrap('DIFFICULTÉS RENCONTRÉES', 14, 'bold');
+        addTextWithWrap(report.difficulties);
+        currentY += 10;
+      }
+      
+      // Solutions
+      if (report.solutions) {
+        addTextWithWrap('SOLUTIONS MISES EN ŒUVRE', 14, 'bold');
+        addTextWithWrap(report.solutions);
+        currentY += 10;
+      }
+      
+      // Recommandations
+      if (report.recommendations) {
+        addTextWithWrap('RECOMMANDATIONS', 14, 'bold');
+        addTextWithWrap(report.recommendations);
+        currentY += 10;
+      }
+      
+      // Rapport IA
+      if (report.generated_report) {
+        addTextWithWrap('RAPPORT DÉTAILLÉ GÉNÉRÉ PAR IA', 14, 'bold');
+        addTextWithWrap(report.generated_report);
+      }
+      
+      // Pied de page
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(
+        `Document généré automatiquement le ${new Date().toLocaleString('fr-FR')}`,
+        margin,
+        doc.internal.pageSize.height - 15
+      );
+      
+      // Sauvegarder le PDF
+      doc.save(fileName);
+      return fileName;
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      // Fallback vers un téléchargement de texte
+      const content = `RAPPORT DE FIN DE TÂCHE
+${report.task?.title || 'Non défini'}
+${new Date(report.created_at).toLocaleDateString('fr-FR')}
 
-Tâche: ${report.task?.title || 'Non défini'}
-Projet: ${report.task?.project?.name || 'Non défini'}
-Date de création: ${new Date(report.created_at).toLocaleDateString('fr-FR')}
-Temps passé: ${report.time_spent ? `${report.time_spent}h` : 'Non renseigné'}
-Qualité: ${report.quality_rating || 'Non évaluée'}
-
-RÉSUMÉ DES TRAVAUX
-==================
 ${report.summary}
 
-${report.difficulties ? `DIFFICULTÉS RENCONTRÉES
-========================
-${report.difficulties}` : ''}
-
-${report.solutions ? `SOLUTIONS APPORTÉES
-===================
-${report.solutions}` : ''}
-
-${report.recommendations ? `RECOMMANDATIONS
-===============
-${report.recommendations}` : ''}
-
-${report.generated_report ? `RAPPORT GÉNÉRÉ PAR IA
-=====================
-${report.generated_report}` : ''}
-    `;
-
-    const blob = new Blob([content], { type: 'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    return fileName;
+${report.generated_report || ''}`;
+      
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName.replace('.pdf', '.txt');
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      return fileName.replace('.pdf', '.txt');
+    }
   };
 
   const handleDownloadReport = async (report: any, format: 'doc' | 'pdf') => {
@@ -125,17 +195,18 @@ ${report.generated_report}` : ''}
       if (format === 'doc') {
         fileName = generateDocxFile(report);
       } else {
-        fileName = generatePdfFile(report);
+        fileName = await generatePdfFile(report);
       }
       
       toast({
         title: "Téléchargement réussi",
-        description: `Le rapport ${fileName} a été téléchargé.`,
+        description: `Le rapport ${fileName} a été téléchargé avec succès.`,
       });
     } catch (error) {
+      console.error('Error downloading report:', error);
       toast({
-        title: "Erreur",
-        description: "Impossible de télécharger le rapport.",
+        title: "Erreur de téléchargement",
+        description: "Impossible de télécharger le rapport. Veuillez réessayer.",
         variant: "destructive",
       });
     }

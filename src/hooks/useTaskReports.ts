@@ -86,6 +86,8 @@ export const useTaskReports = () => {
 
   const createTaskReport = async (reportData: {
     task_id: string;
+    task_title?: string;
+    project_name?: string;
     summary: string;
     difficulties?: string;
     solutions?: string;
@@ -98,8 +100,16 @@ export const useTaskReports = () => {
     if (!user) return null;
 
     try {
+      console.log('Creating task report with data:', reportData);
+      
       // Générer le rapport avec l'IA
-      const generatedReport = await generateAIReport(reportData);
+      const generatedReport = await generateAIReport({
+        ...reportData,
+        task_title: reportData.task_title,
+        project_name: reportData.project_name
+      });
+
+      console.log('Generated AI report successfully, inserting into database...');
 
       const { data, error } = await supabase
         .from('task_reports')
@@ -120,20 +130,23 @@ export const useTaskReports = () => {
         .single();
 
       if (error) {
-        console.error('Error creating task report:', error);
-        return null;
+        console.error('Error creating task report in database:', error);
+        throw error;
       }
 
+      console.log('Task report created successfully:', data);
       await fetchTaskReports();
       return data;
     } catch (error) {
-      console.error('Error creating task report:', error);
-      return null;
+      console.error('Error in createTaskReport:', error);
+      throw error;
     }
   };
 
   const generateAIReport = async (reportData: any): Promise<string> => {
     try {
+      console.log('Calling generate-report function with data:', reportData);
+      
       const response = await supabase.functions.invoke('generate-report', {
         body: {
           summary: reportData.summary,
@@ -142,19 +155,34 @@ export const useTaskReports = () => {
           recommendations: reportData.recommendations,
           time_spent: reportData.time_spent,
           quality_rating: reportData.quality_rating,
-          location: reportData.location
+          location: reportData.location,
+          task_title: reportData.task_title,
+          project_name: reportData.project_name
         }
       });
 
+      console.log('Generate-report response:', response);
+
       if (response.error) {
         console.error('Error calling generate-report function:', response.error);
-        return 'Rapport généré automatiquement non disponible.';
+        return `Erreur lors de la génération du rapport IA: ${response.error.message}`;
       }
 
-      return response.data?.generatedReport || 'Rapport généré automatiquement non disponible.';
+      if (response.data?.warning) {
+        console.warn('Warning from generate-report:', response.data.warning);
+      }
+
+      const generatedReport = response.data?.generatedReport;
+      if (!generatedReport) {
+        console.error('No generatedReport in response:', response);
+        return 'Rapport IA non disponible - réponse vide du serveur.';
+      }
+
+      console.log('Successfully generated AI report, length:', generatedReport.length);
+      return generatedReport;
     } catch (error) {
       console.error('Error generating AI report:', error);
-      return 'Rapport généré automatiquement non disponible.';
+      return `Erreur technique lors de la génération du rapport IA: ${error.message}`;
     }
   };
 

@@ -47,59 +47,22 @@ const TaskReportDialog = ({ task, open, onOpenChange, onComplete }: TaskReportDi
 
     try {
       const reportData = {
-        taskId: task.id,
-        taskTitle: task.title,
+        task_id: task.id,
+        task_title: task.title,
+        project_name: task.project?.name,
         summary,
         difficulties,
         solutions,
         recommendations,
-        timeSpent,
-        quality,
+        time_spent: timeSpent ? parseFloat(timeSpent) : undefined,
+        quality_rating: quality,
         location,
-        attachments: attachments.map(f => f.name),
-        completedAt: new Date().toISOString()
+        attachments: attachments.map(f => f.name)
       };
 
-      console.log("Génération du rapport avec IA:", reportData);
+      console.log("Création du rapport avec IA:", reportData);
 
-      // Appeler l'API pour générer le rapport avec l'IA
-      try {
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-report`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({
-            summary,
-            difficulties,
-            solutions,
-            recommendations,
-            time_spent: parseFloat(timeSpent),
-            quality_rating: quality,
-            location
-          }),
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          console.log('Rapport généré par IA:', result);
-        }
-      } catch (apiError) {
-        console.error('Erreur API:', apiError);
-        // Continue même si l'API échoue
-      }
-
-      await onComplete({
-        summary,
-        difficulties,
-        solutions,
-        recommendations,
-        timeSpent,
-        quality,
-        location,
-        attachments
-      });
+      await onComplete(reportData);
 
       toast({
         title: "Rapport généré",
