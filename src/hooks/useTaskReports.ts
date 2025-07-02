@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import type { Json } from '@/integrations/supabase/types';
 
 export interface TaskReport {
   id: string;
@@ -14,7 +15,7 @@ export interface TaskReport {
   time_spent: number | null;
   quality_rating: string | null;
   location: string | null;
-  attachments: any[] | null;
+  attachments: Json | null;
   generated_report: string | null;
   created_at: string;
   task?: {
