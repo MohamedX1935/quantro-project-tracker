@@ -1,63 +1,26 @@
+
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Users, MapPin, Search, Plus, Calendar as CalendarIcon } from "lucide-react";
+import { Calendar, MapPin, Search, Plus, Calendar as CalendarIcon, Trash2, Lock } from "lucide-react";
+import { useAdminTasks } from "@/hooks/useAdminTasks";
+import { useTaskReports } from "@/hooks/useTaskReports";
+import { toast } from "@/hooks/use-toast";
 import FilterDialog from "./FilterDialog";
 import NewTaskDialog from "./NewTaskDialog";
 
 const TasksManager = () => {
   const [searchTerm, setSearchTerm] = useState("");
-
-  const tasks = [
-    {
-      id: 1,
-      title: "Configuration serveurs production",
-      description: "Mise en place et configuration des serveurs de production",
-      project: "Infrastructure Cloud",
-      assignee: { name: "Bob Dupont", initials: "BD" },
-      status: "En cours",
-      priority: "Haute",
-      deadline: "2024-07-25",
-      progress: 60,
-      location: "Paris Data Center",
-      attachments: 3
-    },
-    {
-      id: 2,
-      title: "Migration données clients",
-      description: "Transfert sécurisé des données clients vers la nouvelle base",
-      project: "Migration BDD",
-      assignee: { name: "David Chen", initials: "DC" },
-      status: "En attente",
-      priority: "Critique",
-      deadline: "2024-07-22",
-      progress: 25,
-      location: "Lyon Office",
-      attachments: 1
-    },
-    {
-      id: 3,
-      title: "Tests d'intégration API",
-      description: "Validation des nouvelles API et tests de charge",
-      project: "Infrastructure Cloud",
-      assignee: { name: "Claire Rousseau", initials: "CR" },
-      status: "Terminé",
-      priority: "Moyenne",
-      deadline: "2024-07-20",
-      progress: 100,
-      location: "Marseille Lab",
-      attachments: 5
-    },
-  ];
+  const { tasks, deleteTask, closeTask, refreshTasks } = useAdminTasks();
+  const { reports } = useTaskReports();
 
   const filteredTasks = tasks.filter(task =>
     task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    task.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    task.project.toLowerCase().includes(searchTerm.toLowerCase())
+    task.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    task.project?.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getStatusColor = (status: string) => {
@@ -66,7 +29,7 @@ const TasksManager = () => {
         return "bg-green-100 text-green-800 border-green-200";
       case "En cours":
         return "bg-blue-100 text-blue-800 border-blue-200";
-      case "En attente":
+      case "À faire":
         return "bg-yellow-100 text-yellow-800 border-yellow-200";
       case "En retard":
         return "bg-red-100 text-red-800 border-red-200";
@@ -77,22 +40,62 @@ const TasksManager = () => {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case "Critique":
+      case "haute":
         return "bg-red-500";
-      case "Haute":
-        return "bg-orange-500";
-      case "Moyenne":
+      case "moyenne":
         return "bg-yellow-500";
-      case "Basse":
+      case "basse":
         return "bg-green-500";
       default:
         return "bg-gray-500";
     }
   };
 
-  const handleViewTaskDetails = (task: any) => {
-    console.log("Voir détails de la tâche:", task);
-    // Ici on pourrait ouvrir un modal de détail
+  const handleDeleteTask = async (taskId: string) => {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer cette tâche ?")) {
+      try {
+        await deleteTask(taskId);
+        toast({
+          title: "Tâche supprimée",
+          description: "La tâche a été supprimée avec succès.",
+        });
+      } catch (error) {
+        toast({
+          title: "Erreur",
+          description: "Impossible de supprimer la tâche.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const handleCloseTask = async (taskId: string) => {
+    if (window.confirm("Êtes-vous sûr de vouloir clôturer cette tâche ?")) {
+      try {
+        await closeTask(taskId);
+        toast({
+          title: "Tâche clôturée",
+          description: "La tâche a été clôturée par l'administrateur.",
+        });
+      } catch (error) {
+        toast({
+          title: "Erreur",
+          description: "Impossible de clôturer la tâche.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const getTaskReport = (taskId: string) => {
+    return reports.find(report => report.task_id === taskId);
+  };
+
+  const calculateProgress = (task: any) => {
+    if (task.status === "Terminé") return 100;
+    if (task.status === "En cours") return 60;
+    if (task.status === "À faire") return 0;
+    return 25;
   };
 
   return (
@@ -117,82 +120,106 @@ const TasksManager = () => {
 
       {/* Tasks List */}
       <div className="space-y-4">
-        {filteredTasks.map((task) => (
-          <Card key={task.id} className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 group">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1 min-w-0 mr-4">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <div className={`w-3 h-3 rounded-full ${getPriorityColor(task.priority)}`} />
-                    <h3 className="text-lg font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">
-                      {task.title}
-                    </h3>
-                    <Badge className={`text-xs ${getStatusColor(task.status)}`}>
-                      {task.status}
-                    </Badge>
-                  </div>
-                  <p className="text-slate-600 mb-2 line-clamp-2">{task.description}</p>
-                  <div className="flex items-center space-x-4 text-sm text-slate-500">
-                    <span className="bg-slate-100 px-2 py-1 rounded text-xs font-medium">
-                      {task.project}
-                    </span>
-                    <span className="flex items-center">
-                      <MapPin className="w-3 h-3 mr-1" />
-                      {task.location}
-                    </span>
-                    <span className="flex items-center">
-                      <CalendarIcon className="w-3 h-3 mr-1" />
-                      {new Date(task.deadline).toLocaleDateString('fr-FR')}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-4">
-                  <div className="text-center">
-                    <Avatar className="w-10 h-10 mx-auto mb-2">
-                      <AvatarFallback className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-sm">
-                        {task.assignee.initials}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="text-xs text-slate-600 font-medium">
-                      {task.assignee.name}
+        {filteredTasks.map((task) => {
+          const progress = calculateProgress(task);
+          const taskReport = getTaskReport(task.id);
+          
+          return (
+            <Card key={task.id} className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 group">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1 min-w-0 mr-4">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <div className={`w-3 h-3 rounded-full ${getPriorityColor(task.priority)}`} />
+                      <h3 className="text-lg font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">
+                        {task.title}
+                      </h3>
+                      <Badge className={`text-xs ${getStatusColor(task.status)}`}>
+                        {task.status}
+                      </Badge>
+                      {task.closed_by_admin && (
+                        <Badge className="text-xs bg-gray-100 text-gray-800">
+                          Clôturée
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-slate-600 mb-2 line-clamp-2">{task.description}</p>
+                    <div className="flex items-center space-x-4 text-sm text-slate-500">
+                      <span className="bg-slate-100 px-2 py-1 rounded text-xs font-medium">
+                        {task.project?.name}
+                      </span>
+                      {task.deadline && (
+                        <span className="flex items-center">
+                          <CalendarIcon className="w-3 h-3 mr-1" />
+                          {new Date(task.deadline).toLocaleDateString('fr-FR')}
+                        </span>
+                      )}
+                      {task.assignee_id && (
+                        <span className="text-xs">
+                          Assigné à: {task.assignee_id}
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  <div className="text-center min-w-[80px]">
-                    <div className="text-2xl font-bold text-slate-900 mb-1">
-                      {task.progress}%
-                    </div>
-                    <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full transition-all duration-300 ${
-                          task.progress === 100 ? 'bg-green-500' : 'bg-blue-500'
-                        }`}
-                        style={{ width: `${task.progress}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col space-y-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="bg-white/50 hover:bg-white border-slate-200"
-                      onClick={() => handleViewTaskDetails(task)}
-                    >
-                      Détails
-                    </Button>
-                    {task.attachments > 0 && (
-                      <div className="text-xs text-slate-500 text-center">
-                        {task.attachments} fichier{task.attachments > 1 ? 's' : ''}
+                  <div className="flex items-center space-x-4">
+                    <div className="text-center min-w-[80px]">
+                      <div className="text-2xl font-bold text-slate-900 mb-1">
+                        {progress}%
                       </div>
-                    )}
+                      <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full transition-all duration-300 ${
+                            progress === 100 ? 'bg-green-500' : 'bg-blue-500'
+                          }`}
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col space-y-2">
+                      {task.status === "Terminé" && !task.closed_by_admin && (
+                        <>
+                          {taskReport && (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700"
+                              onClick={() => console.log('Voir rapport', taskReport)}
+                            >
+                              Voir rapport
+                            </Button>
+                          )}
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleCloseTask(task.id)}
+                            className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
+                          >
+                            <Lock className="w-4 h-4 mr-2" />
+                            Clôturer
+                          </Button>
+                        </>
+                      )}
+                      
+                      {!task.closed_by_admin && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleDeleteTask(task.id)}
+                          className="bg-red-50 hover:bg-red-100 border-red-200 text-red-700"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Supprimer
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {filteredTasks.length === 0 && (

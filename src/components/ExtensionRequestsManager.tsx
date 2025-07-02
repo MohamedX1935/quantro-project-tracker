@@ -6,29 +6,39 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Clock, Calendar, User, CheckCircle, XCircle, MessageSquare } from "lucide-react";
+import { useExtensionRequests } from "@/hooks/useExtensionRequests";
 import { toast } from "@/hooks/use-toast";
 
 const ExtensionRequestsManager = () => {
-  const [requests] = useState<any[]>([]); // Tableau vide - plus d'exemples
-
+  const { requests, updateExtensionRequest } = useExtensionRequests();
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [isResponseDialogOpen, setIsResponseDialogOpen] = useState(false);
   const [adminResponse, setAdminResponse] = useState("");
 
-  const handleApprove = (requestId: number) => {
-    toast({
-      title: "Demande approuvée",
-      description: "La demande de prolongation a été approuvée.",
-    });
-    console.log("Approuver la demande:", requestId);
+  const handleApprove = async (requestId: string) => {
+    try {
+      const success = await updateExtensionRequest(requestId, 'Approuvée', 'Demande de prolongation approuvée.');
+      if (success) {
+        toast({
+          title: "Demande approuvée",
+          description: "La demande de prolongation a été approuvée.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'approuver la demande.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleReject = (requestId: number) => {
-    setSelectedRequest(requests.find(r => r.id === requestId));
+  const handleReject = (request: any) => {
+    setSelectedRequest(request);
     setIsResponseDialogOpen(true);
   };
 
-  const handleSendResponse = () => {
+  const handleSendResponse = async () => {
     if (!adminResponse.trim()) {
       toast({
         title: "Erreur",
@@ -38,15 +48,25 @@ const ExtensionRequestsManager = () => {
       return;
     }
 
-    toast({
-      title: "Demande rejetée",
-      description: "La demande a été rejetée avec une réponse explicative.",
-    });
-    
-    console.log("Rejeter avec réponse:", adminResponse);
-    setAdminResponse("");
-    setIsResponseDialogOpen(false);
-    setSelectedRequest(null);
+    try {
+      const success = await updateExtensionRequest(selectedRequest.id, 'Rejetée', adminResponse);
+      if (success) {
+        toast({
+          title: "Demande rejetée",
+          description: "La demande a été rejetée avec une réponse explicative.",
+        });
+        
+        setAdminResponse("");
+        setIsResponseDialogOpen(false);
+        setSelectedRequest(null);
+      }
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de rejeter la demande.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -59,19 +79,6 @@ const ExtensionRequestsManager = () => {
         return "bg-red-100 text-red-800 border-red-200";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "Critique":
-        return "text-red-600";
-      case "Haute":
-        return "text-orange-600";
-      case "Moyenne":
-        return "text-blue-600";
-      default:
-        return "text-gray-600";
     }
   };
 
@@ -93,33 +100,31 @@ const ExtensionRequestsManager = () => {
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
-                        <h4 className="font-medium text-slate-900">{request.taskTitle}</h4>
+                        <h4 className="font-medium text-slate-900">
+                          {request.task?.title || 'Tâche non trouvée'}
+                        </h4>
                         <Badge className={`text-xs ${getStatusColor(request.status)}`}>
                           {request.status}
                         </Badge>
-                        <span className={`text-xs font-medium ${getPriorityColor(request.priority)}`}>
-                          {request.priority}
-                        </span>
                       </div>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
                         <div className="space-y-1">
-                          <div className="flex items-center text-sm text-slate-600">
-                            <User className="w-4 h-4 mr-2" />
-                            Employé: <strong className="ml-1">{request.employeeName}</strong>
+                          <div className="text-sm text-slate-600">
+                            Employé: <strong>ID {request.employee_id}</strong>
                           </div>
                           <div className="text-sm text-slate-600">
-                            Projet: <strong>{request.projectName}</strong>
+                            Projet: <strong>{request.task?.project?.name || 'Non défini'}</strong>
                           </div>
                         </div>
                         
                         <div className="space-y-1">
+                          <div className="text-sm text-slate-600">
+                            Extension demandée: <strong>{request.requested_extension}</strong>
+                          </div>
                           <div className="flex items-center text-sm text-slate-600">
                             <Calendar className="w-4 h-4 mr-2" />
-                            Échéance originale: <strong className="ml-1">{new Date(request.originalDeadline).toLocaleDateString('fr-FR')}</strong>
-                          </div>
-                          <div className="text-sm text-slate-600">
-                            Extension demandée: <strong>{request.requestedExtension}</strong>
+                            Soumise le: <strong>{new Date(request.created_at).toLocaleDateString('fr-FR')}</strong>
                           </div>
                         </div>
                       </div>
@@ -131,9 +136,12 @@ const ExtensionRequestsManager = () => {
                         </p>
                       </div>
 
-                      <div className="text-xs text-slate-500">
-                        Demande soumise le {new Date(request.submittedAt).toLocaleDateString('fr-FR')}
-                      </div>
+                      {request.admin_response && (
+                        <div className="mb-3 p-3 bg-blue-50 rounded-lg">
+                          <h5 className="text-sm font-medium text-blue-900 mb-1">Votre réponse:</h5>
+                          <p className="text-sm text-blue-800">{request.admin_response}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -150,7 +158,7 @@ const ExtensionRequestsManager = () => {
                       <Button
                         size="sm"
                         variant="destructive"
-                        onClick={() => handleReject(request.id)}
+                        onClick={() => handleReject(request)}
                       >
                         <XCircle className="w-4 h-4 mr-1" />
                         Rejeter
@@ -183,10 +191,10 @@ const ExtensionRequestsManager = () => {
           
           <div className="space-y-4">
             <div>
-              <strong>Tâche:</strong> {selectedRequest?.taskTitle}
+              <strong>Tâche:</strong> {selectedRequest?.task?.title}
             </div>
             <div>
-              <strong>Employé:</strong> {selectedRequest?.employeeName}
+              <strong>Employé:</strong> ID {selectedRequest?.employee_id}
             </div>
             <Textarea
               placeholder="Expliquez les raisons du rejet et donnez des conseils..."

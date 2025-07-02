@@ -6,14 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Paperclip, MapPin, FileText, Send } from "lucide-react";
+import { Paperclip, MapPin, Send } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface TaskReportDialogProps {
   task: any;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onComplete: () => void;
+  onComplete: (data: any) => void;
 }
 
 const TaskReportDialog = ({ task, open, onOpenChange, onComplete }: TaskReportDialogProps) => {
@@ -45,7 +45,6 @@ const TaskReportDialog = ({ task, open, onOpenChange, onComplete }: TaskReportDi
 
     setIsGeneratingReport(true);
 
-    // Simulation de génération de rapport avec IA
     try {
       const reportData = {
         taskId: task.id,
@@ -61,18 +60,52 @@ const TaskReportDialog = ({ task, open, onOpenChange, onComplete }: TaskReportDi
         completedAt: new Date().toISOString()
       };
 
-      // Ici on pourrait appeler l'API Hugging Face pour générer un rapport détaillé
       console.log("Génération du rapport avec IA:", reportData);
 
-      // Simulation d'un délai
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Appeler l'API pour générer le rapport avec l'IA
+      try {
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-report`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            summary,
+            difficulties,
+            solutions,
+            recommendations,
+            time_spent: parseFloat(timeSpent),
+            quality_rating: quality,
+            location
+          }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('Rapport généré par IA:', result);
+        }
+      } catch (apiError) {
+        console.error('Erreur API:', apiError);
+        // Continue même si l'API échoue
+      }
+
+      await onComplete({
+        summary,
+        difficulties,
+        solutions,
+        recommendations,
+        timeSpent,
+        quality,
+        location,
+        attachments
+      });
 
       toast({
         title: "Rapport généré",
         description: "Votre rapport de fin de tâche a été généré et sauvegardé avec succès.",
       });
 
-      onComplete();
       onOpenChange(false);
       
       // Réinitialiser le formulaire

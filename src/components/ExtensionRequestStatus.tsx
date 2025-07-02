@@ -1,40 +1,11 @@
 
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Clock, Calendar, CheckCircle, XCircle, MessageSquare } from "lucide-react";
+import { useExtensionRequests } from "@/hooks/useExtensionRequests";
 
 const ExtensionRequestStatus = () => {
-  const [requests] = useState([
-    {
-      id: 1,
-      taskTitle: "Configuration serveurs production",
-      requestedExtension: "3 jours",
-      reason: "Problèmes de compatibilité réseau imprévus nécessitant des ajustements supplémentaires.",
-      status: "En attente",
-      submittedAt: "2024-07-23",
-      adminResponse: null
-    },
-    {
-      id: 2,
-      taskTitle: "Documentation technique",
-      requestedExtension: "2 jours",
-      reason: "Besoin de plus de temps pour finaliser les diagrammes techniques.",
-      status: "Approuvée",
-      submittedAt: "2024-07-20",
-      adminResponse: "Extension accordée. Merci de respecter la nouvelle échéance."
-    },
-    {
-      id: 3,
-      taskTitle: "Tests unitaires",
-      requestedExtension: "4 jours",
-      reason: "Volume de tests plus important que prévu.",
-      status: "Rejetée",
-      submittedAt: "2024-07-18",
-      adminResponse: "Merci de respecter l'échéance initiale. Des ressources supplémentaires ont été allouées."
-    }
-  ]);
+  const { requests, isLoading } = useExtensionRequests();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -62,6 +33,10 @@ const ExtensionRequestStatus = () => {
     }
   };
 
+  if (isLoading) {
+    return <div className="flex justify-center p-8">Chargement des demandes...</div>;
+  }
+
   return (
     <div className="space-y-6">
       <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
@@ -73,60 +48,67 @@ const ExtensionRequestStatus = () => {
         </CardHeader>
         
         <CardContent>
-          <div className="space-y-4">
-            {requests.map((request) => (
-              <div key={request.id} className="p-4 bg-slate-50/50 rounded-lg border border-slate-200">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-medium text-slate-900">{request.taskTitle}</h4>
-                      <Badge className={`text-xs flex items-center gap-1 ${getStatusColor(request.status)}`}>
-                        {getStatusIcon(request.status)}
-                        {request.status}
-                      </Badge>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                      <div>
-                        <div className="text-sm text-slate-600 mb-1">
-                          <span className="font-medium">Extension demandée:</span> {request.requestedExtension}
+          {requests.length > 0 ? (
+            <div className="space-y-4">
+              {requests.map((request) => (
+                <div key={request.id} className="p-4 bg-slate-50/50 rounded-lg border border-slate-200">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h4 className="font-medium text-slate-900">
+                          {request.task?.title || 'Tâche non trouvée'}
+                        </h4>
+                        <Badge className={`text-xs flex items-center gap-1 ${getStatusColor(request.status)}`}>
+                          {getStatusIcon(request.status)}
+                          {request.status}
+                        </Badge>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                        <div>
+                          <div className="text-sm text-slate-600 mb-1">
+                            <span className="font-medium">Extension demandée:</span> {request.requested_extension}
+                          </div>
+                          <div className="text-sm text-slate-600">
+                            <span className="font-medium">Soumise le:</span> {new Date(request.created_at).toLocaleDateString('fr-FR')}
+                          </div>
                         </div>
-                        <div className="text-sm text-slate-600">
-                          <span className="font-medium">Soumise le:</span> {new Date(request.submittedAt).toLocaleDateString('fr-FR')}
+                        <div>
+                          <div className="text-sm text-slate-600">
+                            <span className="font-medium">Projet:</span> {request.task?.project?.name || 'Non défini'}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="mb-3">
-                      <h5 className="text-sm font-medium text-slate-700 mb-1">Justification:</h5>
-                      <p className="text-sm text-slate-600 bg-white p-2 rounded border">
-                        {request.reason}
-                      </p>
-                    </div>
-
-                    {request.adminResponse && (
-                      <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                        <h5 className="text-sm font-medium text-blue-900 mb-1">Réponse de l'administrateur:</h5>
-                        <p className="text-sm text-blue-800">{request.adminResponse}</p>
+                      <div className="mb-3">
+                        <h5 className="text-sm font-medium text-slate-700 mb-1">Justification:</h5>
+                        <p className="text-sm text-slate-600 bg-white p-2 rounded border">
+                          {request.reason}
+                        </p>
                       </div>
-                    )}
+
+                      {request.admin_response && (
+                        <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                          <h5 className="text-sm font-medium text-blue-900 mb-1">Réponse de l'administrateur:</h5>
+                          <p className="text-sm text-blue-800">{request.admin_response}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <MessageSquare className="w-8 h-8 text-slate-400" />
               </div>
-            ))}
-          </div>
+              <h3 className="text-lg font-medium text-slate-900 mb-2">Aucune demande envoyée</h3>
+              <p className="text-slate-600">Vos demandes de prolongation apparaîtront ici</p>
+            </div>
+          )}
         </CardContent>
       </Card>
-
-      {requests.length === 0 && (
-        <div className="text-center py-12">
-          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <MessageSquare className="w-8 h-8 text-slate-400" />
-          </div>
-          <h3 className="text-lg font-medium text-slate-900 mb-2">Aucune demande envoyée</h3>
-          <p className="text-slate-600">Vos demandes de prolongation apparaîtront ici</p>
-        </div>
-      )}
     </div>
   );
 };

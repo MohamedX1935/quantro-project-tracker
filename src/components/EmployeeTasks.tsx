@@ -3,68 +3,35 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { CheckSquare, Clock, FileText, Send, Calendar, AlertTriangle, MessageSquare } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "@/hooks/use-toast";
-import TaskReportDialog from "./TaskReportDialog";
-import TaskDetailsDialog from "./TaskDetailsDialog";
-import ExtensionRequestStatus from "./ExtensionRequestStatus";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Calendar, Search, Clock, FileText, AlertCircle, CheckCircle, Play, Pause } from "lucide-react";
 import { useEmployeeTasks } from "@/hooks/useEmployeeTasks";
+import { useExtensionRequests } from "@/hooks/useExtensionRequests";
+import { useTaskReports } from "@/hooks/useTaskReports";
+import { toast } from "@/hooks/use-toast";
+import TaskDetailsDialog from "./TaskDetailsDialog";
+import TaskReportDialog from "./TaskReportDialog";
+import ExtensionRequestDialog from "./ExtensionRequestDialog";
+import ExtensionRequestStatus from "./ExtensionRequestStatus";
+import TaskReportsViewer from "./TaskReportsViewer";
 
 const EmployeeTasks = () => {
-  const { user } = useAuth();
-  const { tasks: myTasks, isLoading, error, refreshTasks, updateTaskStatus } = useEmployeeTasks();
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedTask, setSelectedTask] = useState<any>(null);
-  const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<any>(null);
-  const [extensionRequest, setExtensionRequest] = useState("");
-  const [isExtensionDialogOpen, setIsExtensionDialogOpen] = useState(false);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
-  const [isTaskDetailsOpen, setIsTaskDetailsOpen] = useState(false);
+  const [isExtensionDialogOpen, setIsExtensionDialogOpen] = useState(false);
 
-  const handleCompleteTask = async (task: any) => {
-    try {
-      await updateTaskStatus(task.id, "Terminé");
-      setSelectedTask(task);
-      setIsReportDialogOpen(true);
-      
-      toast({
-        title: "Tâche terminée",
-        description: "La tâche a été marquée comme terminée avec succès.",
-      });
-    } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible de marquer la tâche comme terminée.",
-        variant: "destructive"
-      });
-    }
-  };
+  const { tasks, isLoading, updateTaskStatus, refreshTasks } = useEmployeeTasks();
+  const { createExtensionRequest } = useExtensionRequests();
+  const { createTaskReport } = useTaskReports();
 
-  const handleTaskCompleted = () => {
-    toast({
-      title: "Rapport soumis",
-      description: "Le rapport de tâche a été généré avec succès.",
-    });
-  };
-
-  const handleViewTaskDetails = (task: any) => {
-    setSelectedTaskForDetails(task);
-    setIsTaskDetailsOpen(true);
-  };
-
-  const handleSendExtensionRequest = () => {
-    if (!extensionRequest.trim()) return;
-    
-    toast({
-      title: "Demande envoyée",
-      description: "Votre demande de prolongation a été envoyée à l'administrateur.",
-    });
-    setExtensionRequest("");
-    setIsExtensionDialogOpen(false);
-  };
+  const filteredTasks = tasks.filter(task =>
+    task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    task.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    task.project?.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -84,242 +51,270 @@ const EmployeeTasks = () => {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "haute":
-        return "text-red-600";
+        return "bg-red-500";
       case "moyenne":
-        return "text-orange-600";
+        return "bg-yellow-500";
       case "basse":
-        return "text-blue-600";
+        return "bg-green-500";
       default:
-        return "text-gray-600";
+        return "bg-gray-500";
     }
   };
 
-  if (error) {
-    return (
-      <div className="text-center py-12">
-        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <AlertTriangle className="w-8 h-8 text-red-600" />
-        </div>
-        <h3 className="text-lg font-medium text-slate-900 mb-2">Erreur de chargement</h3>
-        <p className="text-slate-600 mb-4">{error}</p>
-        <Button onClick={refreshTasks}>
-          Réessayer
-        </Button>
-      </div>
-    );
+  const handleViewDetails = (task: any) => {
+    const taskDetails = {
+      ...task,
+      project: task.project?.name || "Projet non défini",
+      assignedBy: "Administrateur",
+      createdAt: task.created_at
+    };
+    setSelectedTask(taskDetails);
+    setIsDetailsDialogOpen(true);
+  };
+
+  const handleStatusChange = async (taskId: string, newStatus: string) => {
+    try {
+      if (newStatus === "Terminé") {
+        // Ouvrir le dialogue de rapport
+        const task = tasks.find(t => t.id === taskId);
+        setSelectedTask(task);
+        setIsReportDialogOpen(true);
+      } else {
+        await updateTaskStatus(taskId, newStatus);
+        toast({
+          title: "Statut mis à jour",
+          description: `La tâche a été marquée comme "${newStatus}".`,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour le statut de la tâche.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCompleteTask = async (reportData: any) => {
+    try {
+      // Créer le rapport
+      const report = await createTaskReport({
+        task_id: selectedTask.id,
+        summary: reportData.summary,
+        difficulties: reportData.difficulties,
+        solutions: reportData.solutions,
+        recommendations: reportData.recommendations,
+        time_spent: parseFloat(reportData.timeSpent),
+        quality_rating: reportData.quality,
+        location: reportData.location,
+        attachments: reportData.attachments
+      });
+
+      if (report) {
+        // Mettre à jour le statut de la tâche
+        await updateTaskStatus(selectedTask.id, "Terminé");
+        
+        toast({
+          title: "Tâche terminée",
+          description: "La tâche a été marquée comme terminée et le rapport a été généré.",
+        });
+
+        refreshTasks();
+      }
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de terminer la tâche.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleExtensionRequest = (task: any) => {
+    setSelectedTask(task);
+    setIsExtensionDialogOpen(true);
+  };
+
+  const handleSubmitExtensionRequest = async (requestData: any) => {
+    try {
+      const success = await createExtensionRequest({
+        task_id: selectedTask.id,
+        reason: requestData.reason,
+        requested_extension: requestData.extension
+      });
+
+      if (success) {
+        toast({
+          title: "Demande envoyée",
+          description: "Votre demande de prolongation a été envoyée à l'administrateur.",
+        });
+      } else {
+        throw new Error("Échec de la création de la demande");
+      }
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'envoyer la demande de prolongation.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (isLoading) {
+    return <div className="flex justify-center p-8">Chargement des tâches...</div>;
   }
 
   return (
-    <Tabs defaultValue="tasks" className="space-y-6">
-      <TabsList className="grid w-full grid-cols-2 bg-white/60 backdrop-blur-sm border border-slate-200">
-        <TabsTrigger value="tasks">Mes Tâches</TabsTrigger>
-        <TabsTrigger value="requests">Demandes de Prolongation</TabsTrigger>
-      </TabsList>
-
-      <TabsContent value="tasks" className="space-y-6">
-        {/* Stats rapides */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Mes Tâches</CardTitle>
-              <CheckSquare className="h-4 w-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-900">{myTasks.length}</div>
-              <p className="text-xs text-slate-500">Total assignées</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">En Cours</CardTitle>
-              <Clock className="h-4 w-4 text-orange-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-900">
-                {myTasks.filter(task => task.status === 'En cours').length}
-              </div>
-              <p className="text-xs text-slate-500">Tâches actives</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Terminées</CardTitle>
-              <div className="h-4 w-4 bg-green-100 rounded-full flex items-center justify-center">
-                <div className="h-2 w-2 bg-green-600 rounded-full"></div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-900">
-                {myTasks.filter(task => task.status === 'Terminé').length}
-              </div>
-              <p className="text-xs text-slate-500">Cette semaine</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">À faire</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-yellow-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-900">
-                {myTasks.filter(task => task.status === 'À faire').length}
-              </div>
-              <p className="text-xs text-slate-500">En attente</p>
-            </CardContent>
-          </Card>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Mes Tâches</h1>
+          <p className="text-slate-600">Gérez vos tâches assignées</p>
         </div>
+        
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+          <Input
+            placeholder="Rechercher des tâches..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 bg-white/80 backdrop-blur-sm border-slate-200"
+          />
+        </div>
+      </div>
 
-        {/* Liste des tâches */}
-        <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-slate-900">
-              Mes Tâches Assignées
-            </CardTitle>
-            <CardDescription className="text-slate-600">
-              Gérez vos tâches et suivez votre progression
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent>
-            {isLoading ? (
-              <div className="text-center py-12">
-                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                <p className="text-slate-600">Chargement des tâches...</p>
-              </div>
-            ) : myTasks.length > 0 ? (
-              <div className="space-y-4">
-                {myTasks.map((task) => (
-                  <div key={task.id} className="p-4 bg-slate-50/50 rounded-lg border border-slate-200">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-medium text-slate-900">{task.title}</h4>
-                          <Badge className={`text-xs ${getStatusColor(task.status)}`}>
-                            {task.status}
-                          </Badge>
-                          <span className={`text-xs font-medium ${getPriorityColor(task.priority)}`}>
-                            {task.priority}
-                          </span>
-                        </div>
-                        <p className="text-sm text-slate-600 mb-2">{task.description}</p>
-                        <div className="flex items-center gap-4 text-xs text-slate-500">
-                          <span>Projet: <strong>{task.project?.name || 'Non défini'}</strong></span>
-                          {task.deadline && (
-                            <span className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              Échéance: {new Date(task.deadline).toLocaleDateString('fr-FR')}
-                            </span>
-                          )}
-                          <span>Créé le: {new Date(task.created_at).toLocaleDateString('fr-FR')}</span>
-                        </div>
-                      </div>
-                    </div>
+      <Tabs defaultValue="tasks" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="tasks">Mes Tâches ({filteredTasks.length})</TabsTrigger>
+          <TabsTrigger value="extensions">Demandes de Prolongation</TabsTrigger>
+          <TabsTrigger value="reports">Mes Rapports</TabsTrigger>
+        </TabsList>
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-2">
-                      {task.status !== 'Terminé' && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleCompleteTask(task)}
-                          className="bg-green-600 hover:bg-green-700 text-white"
-                        >
-                          <CheckSquare className="w-4 h-4 mr-1" />
-                          Marquer terminé
-                        </Button>
+        <TabsContent value="tasks" className="space-y-4">
+          {filteredTasks.map((task) => (
+            <Card key={task.id} className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm hover:shadow-md transition-all duration-200">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1 min-w-0 mr-4">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <div className={`w-3 h-3 rounded-full ${getPriorityColor(task.priority)}`} />
+                      <h3 className="text-lg font-semibold text-slate-900">{task.title}</h3>
+                      <Badge className={`text-xs ${getStatusColor(task.status)}`}>
+                        {task.status}
+                      </Badge>
+                      {task.closed_by_admin && (
+                        <Badge className="text-xs bg-gray-100 text-gray-800">
+                          Clôturée par admin
+                        </Badge>
                       )}
-                      
-                      <Dialog open={isExtensionDialogOpen} onOpenChange={setIsExtensionDialogOpen}>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" size="sm" onClick={() => setSelectedTask(task)}>
-                            <Clock className="w-4 h-4 mr-1" />
-                            Demander prolongation
-                          </Button>
-                        </DialogTrigger>
-                        
-                        <DialogContent className="sm:max-w-md">
-                          <DialogHeader>
-                            <DialogTitle>Demande de Prolongation</DialogTitle>
-                            <DialogDescription>
-                              Expliquez pourquoi vous avez besoin de plus de temps pour cette tâche
-                            </DialogDescription>
-                          </DialogHeader>
-                          
-                          <div className="space-y-4">
-                            <div>
-                              <strong>Tâche:</strong> {selectedTask?.title}
-                            </div>
-                            <Textarea
-                              placeholder="Expliquez les raisons de votre demande de prolongation..."
-                              value={extensionRequest}
-                              onChange={(e) => setExtensionRequest(e.target.value)}
-                              rows={4}
-                            />
-                          </div>
-                          
-                          <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsExtensionDialogOpen(false)}>
-                              Annuler
-                            </Button>
-                            <Button onClick={handleSendExtensionRequest}>
-                              <Send className="w-4 h-4 mr-2" />
-                              Envoyer la demande
-                            </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                      
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleViewTaskDetails(task)}
-                      >
-                        <FileText className="w-4 h-4 mr-1" />
-                        Voir détails
-                      </Button>
+                    </div>
+                    <p className="text-slate-600 mb-2 line-clamp-2">{task.description}</p>
+                    <div className="flex items-center space-x-4 text-sm text-slate-500">
+                      <span className="bg-slate-100 px-2 py-1 rounded text-xs font-medium">
+                        {task.project?.name}
+                      </span>
+                      {task.deadline && (
+                        <span className="flex items-center">
+                          <Calendar className="w-3 h-3 mr-1" />
+                          {new Date(task.deadline).toLocaleDateString('fr-FR')}
+                        </span>
+                      )}
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckSquare className="w-8 h-8 text-slate-400" />
-                </div>
-                <h3 className="text-lg font-medium text-slate-900 mb-2">Aucune tâche assignée</h3>
-                <p className="text-slate-600">Vos tâches assignées apparaîtront ici</p>
-                <Button 
-                  className="mt-4" 
-                  variant="outline" 
-                  onClick={refreshTasks}
-                >
-                  Actualiser
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </TabsContent>
 
-      <TabsContent value="requests">
-        <ExtensionRequestStatus />
-      </TabsContent>
+                  <div className="flex flex-col space-y-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleViewDetails(task)}
+                      className="bg-white/50 hover:bg-white border-slate-200"
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      Voir détails
+                    </Button>
+                    
+                    {task.status !== "Terminé" && !task.closed_by_admin && (
+                      <>
+                        {task.status === "À faire" && (
+                          <Button 
+                            size="sm"
+                            onClick={() => handleStatusChange(task.id, "En cours")}
+                            className="bg-blue-600 hover:bg-blue-700"
+                          >
+                            <Play className="w-4 h-4 mr-2" />
+                            Commencer
+                          </Button>
+                        )}
+                        
+                        {task.status === "En cours" && (
+                          <>
+                            <Button 
+                              size="sm"
+                              onClick={() => handleStatusChange(task.id, "Terminé")}
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              Terminer
+                            </Button>
+                            <Button 
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleExtensionRequest(task)}
+                              className="bg-white/50 hover:bg-white border-slate-200"
+                            >
+                              <Clock className="w-4 h-4 mr-2" />
+                              Prolongation
+                            </Button>
+                          </>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+
+          {filteredTasks.length === 0 && (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FileText className="w-8 h-8 text-slate-400" />
+              </div>
+              <h3 className="text-lg font-medium text-slate-900 mb-2">Aucune tâche trouvée</h3>
+              <p className="text-slate-600">Aucune tâche ne correspond à vos critères de recherche</p>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="extensions">
+          <ExtensionRequestStatus />
+        </TabsContent>
+
+        <TabsContent value="reports">
+          <TaskReportsViewer />
+        </TabsContent>
+      </Tabs>
+
+      <TaskDetailsDialog
+        task={selectedTask}
+        open={isDetailsDialogOpen}
+        onOpenChange={setIsDetailsDialogOpen}
+      />
 
       <TaskReportDialog
         task={selectedTask}
         open={isReportDialogOpen}
         onOpenChange={setIsReportDialogOpen}
-        onComplete={handleTaskCompleted}
+        onComplete={handleCompleteTask}
       />
 
-      <TaskDetailsDialog
-        task={selectedTaskForDetails}
-        open={isTaskDetailsOpen}
-        onOpenChange={setIsTaskDetailsOpen}
+      <ExtensionRequestDialog
+        task={selectedTask}
+        open={isExtensionDialogOpen}
+        onOpenChange={setIsExtensionDialogOpen}
+        onSubmit={handleSubmitExtensionRequest}
       />
-    </Tabs>
+    </div>
   );
 };
 

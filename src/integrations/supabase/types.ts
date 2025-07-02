@@ -45,6 +45,50 @@ export type Database = {
         }
         Relationships: []
       }
+      extension_requests: {
+        Row: {
+          admin_response: string | null
+          created_at: string
+          employee_id: string
+          id: string
+          reason: string
+          requested_extension: string | null
+          status: string
+          task_id: string
+          updated_at: string
+        }
+        Insert: {
+          admin_response?: string | null
+          created_at?: string
+          employee_id: string
+          id?: string
+          reason: string
+          requested_extension?: string | null
+          status?: string
+          task_id: string
+          updated_at?: string
+        }
+        Update: {
+          admin_response?: string | null
+          created_at?: string
+          employee_id?: string
+          id?: string
+          reason?: string
+          requested_extension?: string | null
+          status?: string
+          task_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extension_requests_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "project_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_assignments: {
         Row: {
           assigned_at: string
@@ -77,6 +121,7 @@ export type Database = {
       project_tasks: {
         Row: {
           assignee_id: string | null
+          closed_by_admin: boolean | null
           created_at: string
           deadline: string | null
           description: string | null
@@ -89,6 +134,7 @@ export type Database = {
         }
         Insert: {
           assignee_id?: string | null
+          closed_by_admin?: boolean | null
           created_at?: string
           deadline?: string | null
           description?: string | null
@@ -101,6 +147,7 @@ export type Database = {
         }
         Update: {
           assignee_id?: string | null
+          closed_by_admin?: boolean | null
           created_at?: string
           deadline?: string | null
           description?: string | null
@@ -153,6 +200,62 @@ export type Database = {
           priority?: string
         }
         Relationships: []
+      }
+      task_reports: {
+        Row: {
+          attachments: Json | null
+          created_at: string
+          difficulties: string | null
+          employee_id: string
+          generated_report: string | null
+          id: string
+          location: string | null
+          quality_rating: string | null
+          recommendations: string | null
+          solutions: string | null
+          summary: string
+          task_id: string
+          time_spent: number | null
+        }
+        Insert: {
+          attachments?: Json | null
+          created_at?: string
+          difficulties?: string | null
+          employee_id: string
+          generated_report?: string | null
+          id?: string
+          location?: string | null
+          quality_rating?: string | null
+          recommendations?: string | null
+          solutions?: string | null
+          summary: string
+          task_id: string
+          time_spent?: number | null
+        }
+        Update: {
+          attachments?: Json | null
+          created_at?: string
+          difficulties?: string | null
+          employee_id?: string
+          generated_report?: string | null
+          id?: string
+          location?: string | null
+          quality_rating?: string | null
+          recommendations?: string | null
+          solutions?: string | null
+          summary?: string
+          task_id?: string
+          time_spent?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_reports_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "project_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
