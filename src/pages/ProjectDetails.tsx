@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -44,24 +45,28 @@ const ProjectDetails = () => {
     setIsLoading(true);
     try {
       // Charger les employés assignés
-      const { data: assignments } = await supabase
+      const { data: assignments, error: assignmentsError } = await supabase
         .from('project_assignments')
         .select('employee_id')
         .eq('project_id', projectId);
 
-      if (assignments) {
+      if (assignmentsError) {
+        console.error('Error loading assignments:', assignmentsError);
+      } else if (assignments) {
         const assignedEmployeeIds = assignments.map(a => a.employee_id);
         const assignedEmps = users.filter(user => assignedEmployeeIds.includes(user.id));
         setAssignedEmployees(assignedEmps);
       }
 
       // Charger les tâches
-      const { data: tasks } = await supabase
+      const { data: tasks, error: tasksError } = await supabase
         .from('project_tasks')
         .select('*')
         .eq('project_id', projectId);
 
-      if (tasks) {
+      if (tasksError) {
+        console.error('Error loading tasks:', tasksError);
+      } else if (tasks) {
         const tasksWithAssignees = tasks.map(task => ({
           ...task,
           assignee: task.assignee_id ? users.find(u => u.id === task.assignee_id) : null
@@ -107,7 +112,7 @@ const ProjectDetails = () => {
 
   const handleCreateTask = (taskData: any) => {
     const newTask = {
-      id: Date.now().toString(),
+      id: `temp_${Date.now()}`,
       title: taskData.title,
       description: taskData.description,
       assignee: taskData.assignee,
@@ -116,7 +121,8 @@ const ProjectDetails = () => {
       priority: taskData.priority,
       deadline: taskData.deadline,
       project_id: projectId,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
     setProjectTasks(prev => [...prev, newTask]);
     setShowCreateTask(false);
@@ -134,10 +140,14 @@ const ProjectDetails = () => {
     try {
       // Sauvegarder les assignations d'employés
       // D'abord supprimer les anciennes assignations
-      await supabase
+      const { error: deleteAssignmentsError } = await supabase
         .from('project_assignments')
         .delete()
         .eq('project_id', projectId);
+
+      if (deleteAssignmentsError) {
+        throw deleteAssignmentsError;
+      }
 
       // Ajouter les nouvelles assignations
       if (assignedEmployees.length > 0) {
@@ -147,22 +157,29 @@ const ProjectDetails = () => {
           assigned_at: new Date().toISOString()
         }));
 
-        await supabase
+        const { error: insertAssignmentsError } = await supabase
           .from('project_assignments')
           .insert(assignmentsToInsert);
+
+        if (insertAssignmentsError) {
+          throw insertAssignmentsError;
+        }
       }
 
       // Sauvegarder les tâches
       // D'abord supprimer les anciennes tâches
-      await supabase
+      const { error: deleteTasksError } = await supabase
         .from('project_tasks')
         .delete()
         .eq('project_id', projectId);
 
+      if (deleteTasksError) {
+        throw deleteTasksError;
+      }
+
       // Ajouter les nouvelles tâches
       if (projectTasks.length > 0) {
         const tasksToInsert = projectTasks.map(task => ({
-          id: task.id.startsWith('temp_') ? undefined : task.id,
           project_id: projectId,
           title: task.title,
           description: task.description,
@@ -170,12 +187,17 @@ const ProjectDetails = () => {
           status: task.status,
           priority: task.priority,
           deadline: task.deadline,
-          created_at: task.created_at
+          created_at: task.created_at,
+          updated_at: new Date().toISOString()
         }));
 
-        await supabase
+        const { error: insertTasksError } = await supabase
           .from('project_tasks')
           .insert(tasksToInsert);
+
+        if (insertTasksError) {
+          throw insertTasksError;
+        }
       }
 
       setHasUnsavedChanges(false);
@@ -183,6 +205,9 @@ const ProjectDetails = () => {
         title: "Modifications sauvegardées",
         description: "Toutes les modifications ont été enregistrées avec succès.",
       });
+      
+      // Recharger les données pour s'assurer de la cohérence
+      await loadProjectData();
     } catch (error) {
       console.error('Error saving changes:', error);
       toast({
@@ -448,7 +473,7 @@ const ProjectDetails = () => {
                           </span>
                           <span className="flex items-center">
                             <Calendar className="w-3 h-3 mr-1" />
-                            {new Date(task.deadline).toLocaleDateString('fr-FR')}
+                            {task.deadline ? new Date(task.deadline).toLocaleDateString('fr-FR') : 'Pas de date limite'}
                           </span>
                         </div>
                       </div>
@@ -515,7 +540,7 @@ const ProjectDetails = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Échéance</label>
-                    <input name="deadline" type="date" required className="w-full p-2 border border-slate-200 rounded" />
+                    <input name="deadline" type="date" className="w-full p-2 border border-slate-200 rounded" />
                   </div>
                 </div>
                 <div className="flex gap-2 mt-6">
