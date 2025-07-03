@@ -112,10 +112,15 @@ const ExtensionRequestsManager = () => {
                         <div className="space-y-1">
                           <div className="text-sm text-slate-600">
                             Employé: <strong>
-                              {request.employee?.first_name && request.employee?.last_name 
-                                ? `${request.employee.first_name} ${request.employee.last_name}`
-                                : `ID ${request.employee_id}`
-                              }
+                              {(() => {
+                                if (request.employee?.first_name && request.employee?.last_name) {
+                                  return `${request.employee.first_name} ${request.employee.last_name}`;
+                                } else if (request.employee?.username) {
+                                  return request.employee.username;
+                                } else {
+                                  return `ID ${request.employee_id}`;
+                                }
+                              })()}
                             </strong>
                           </div>
                           <div className="text-sm text-slate-600">
@@ -199,10 +204,15 @@ const ExtensionRequestsManager = () => {
               <strong>Tâche:</strong> {selectedRequest?.task?.title}
             </div>
             <div>
-              <strong>Employé:</strong> {selectedRequest?.employee?.first_name && selectedRequest?.employee?.last_name 
-                ? `${selectedRequest.employee.first_name} ${selectedRequest.employee.last_name}`
-                : `ID ${selectedRequest?.employee_id}`
-              }
+              <strong>Employé:</strong> {(() => {
+                if (selectedRequest?.employee?.first_name && selectedRequest?.employee?.last_name) {
+                  return `${selectedRequest.employee.first_name} ${selectedRequest.employee.last_name}`;
+                } else if (selectedRequest?.employee?.username) {
+                  return selectedRequest.employee.username;
+                } else {
+                  return `ID ${selectedRequest?.employee_id}`;
+                }
+              })()}
             </div>
             <Textarea
               placeholder="Expliquez les raisons du rejet et donnez des conseils..."

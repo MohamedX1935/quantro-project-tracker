@@ -22,6 +22,7 @@ export interface ExtensionRequest {
   employee?: {
     first_name: string;
     last_name: string;
+    username: string;
   };
 }
 
@@ -68,11 +69,14 @@ export const useExtensionRequests = () => {
       if (employeeIds.length > 0 && user?.role === 'admin') {
         const { data: employees, error: employeesError } = await supabase
           .from('app_users')
-          .select('id, first_name, last_name')
+          .select('id, first_name, last_name, username')
           .in('id', employeeIds);
 
-        if (!employeesError) {
-          employeesData = employees || [];
+        if (!employeesError && employees) {
+          employeesData = employees;
+          console.log('Employees data fetched:', employees);
+        } else {
+          console.error('Error fetching employees:', employeesError);
         }
       }
 
@@ -90,7 +94,8 @@ export const useExtensionRequests = () => {
           },
           employee: employee ? {
             first_name: employee.first_name || '',
-            last_name: employee.last_name || ''
+            last_name: employee.last_name || '',
+            username: employee.username || ''
           } : undefined
         };
       }) || [];
