@@ -58,10 +58,17 @@ const ProjectDetails = () => {
         setAssignedEmployees(assignedEmps);
       }
 
-      // Charger les tâches
+      // Charger les tâches avec les informations de l'assignateur
       const { data: tasks, error: tasksError } = await supabase
         .from('project_tasks')
-        .select('*')
+        .select(`
+          *,
+          assigned_by_user:app_users!assigned_by (
+            first_name,
+            last_name,
+            username
+          )
+        `)
         .eq('project_id', projectId);
 
       if (tasksError) {
@@ -117,6 +124,7 @@ const ProjectDetails = () => {
       description: taskData.description,
       assignee: taskData.assignee,
       assignee_id: taskData.assignee?.id || null,
+      assigned_by: user?.id, // Définir l'assignateur pour les nouvelles tâches
       status: "En cours",
       priority: taskData.priority,
       deadline: taskData.deadline,
@@ -198,7 +206,8 @@ const ProjectDetails = () => {
           title: task.title,
           description: task.description,
           assignee_id: task.assignee_id,
-          assigned_by: user?.id,
+          // Préserver l'assignateur original ou utiliser l'utilisateur actuel pour les nouvelles tâches
+          assigned_by: task.assigned_by || user?.id,
           status: task.status,
           priority: task.priority,
           deadline: task.deadline,
