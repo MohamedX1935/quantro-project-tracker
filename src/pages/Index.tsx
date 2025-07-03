@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminStats } from "@/hooks/useAdminStats";
-import TasksManager from "@/components/TasksManager";
+
 import ProjectsOverview from "@/components/ProjectsOverview";
 import TeamDashboard from "@/components/TeamDashboard";
 import UserManagement from "@/components/UserManagement";
@@ -133,10 +133,9 @@ const Index = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-7 bg-white/60 backdrop-blur-sm border border-slate-200 shadow-sm">
+          <TabsList className="grid w-full grid-cols-6 bg-white/60 backdrop-blur-sm border border-slate-200 shadow-sm">
             <TabsTrigger value="dashboard">Tableau de bord</TabsTrigger>
             <TabsTrigger value="projects">Projets</TabsTrigger>
-            <TabsTrigger value="tasks">Tâches</TabsTrigger>
             <TabsTrigger value="team">Équipe</TabsTrigger>
             <TabsTrigger value="extensions">Prolongations</TabsTrigger>
             <TabsTrigger value="reports">Rapports</TabsTrigger>
@@ -294,14 +293,6 @@ const Index = () => {
                   <Button 
                     className="w-full justify-start" 
                     variant="outline"
-                    onClick={() => setActiveTab("tasks")}
-                  >
-                    <CheckSquare className="w-4 h-4 mr-2" />
-                    Gérer les tâches
-                  </Button>
-                  <Button 
-                    className="w-full justify-start" 
-                    variant="outline"
                     onClick={() => setActiveTab("extensions")}
                   >
                     <Clock className="w-4 h-4 mr-2" />
@@ -316,9 +307,6 @@ const Index = () => {
             <ProjectsOverview />
           </TabsContent>
 
-          <TabsContent value="tasks">
-            <TasksManager />
-          </TabsContent>
 
           <TabsContent value="team">
             <TeamDashboard />
