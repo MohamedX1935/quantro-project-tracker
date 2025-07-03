@@ -310,7 +310,6 @@ const ProjectDetails = () => {
               </Button>
               <div>
                 <h1 className="text-xl font-bold text-slate-900">{project.name}</h1>
-                <p className="text-sm text-slate-600">{project.description}</p>
               </div>
             </div>
             
@@ -360,6 +359,16 @@ const ProjectDetails = () => {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
+            {/* Description du projet */}
+            <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-sm font-medium">Description</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-slate-600">{project.description}</p>
+              </CardContent>
+            </Card>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
                 <CardHeader>
