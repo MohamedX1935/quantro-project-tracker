@@ -133,7 +133,7 @@ const Index = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-6 bg-white/60 backdrop-blur-sm border border-slate-200 shadow-sm">
+          <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-white/60 backdrop-blur-sm border border-slate-200 shadow-sm p-1 text-muted-foreground w-fit">
             <TabsTrigger value="dashboard">Tableau de bord</TabsTrigger>
             <TabsTrigger value="projects">Projets</TabsTrigger>
             <TabsTrigger value="team">Équipe</TabsTrigger>
