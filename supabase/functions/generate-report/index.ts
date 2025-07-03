@@ -16,38 +16,33 @@ serve(async (req) => {
 
     console.log('Generating report for task:', task_title, 'in project:', project_name)
 
-    // Prompt optimisé pour générer un rapport professionnel structuré
-    const prompt = `<s>[INST] Vous êtes un assistant professionnel spécialisé dans la rédaction de rapports de fin de tâche. Générez un rapport détaillé et structuré basé sur les informations suivantes :
+    // Prompt optimisé pour générer le rapport selon le format exact demandé
+    const prompt = `<s>[INST] Générez un rapport de fin de tâche EXACTEMENT selon ce format :
 
-INFORMATIONS DE LA TÂCHE :
-- Titre : ${task_title || 'Tâche non spécifiée'}
-- Projet : ${project_name || 'Projet non spécifié'}
-- Employé : ${employee_name || 'Non spécifié'}
-- Localisation : ${location || 'Non spécifiée'}
-- Temps passé : ${time_spent || 'Non spécifié'} heures
-- Qualité auto-évaluée : ${quality_rating || 'Non renseignée'}
+RAPPORT DE FIN DE TÂCHE
 
-RÉSUMÉ DES TRAVAUX EFFECTUÉS :
+🔹 INFORMATIONS GÉNÉRALES
+Date d'émission : ${new Date().toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' })}
+Tâche : ${task_title || 'Non spécifiée'}
+Projet : ${project_name || 'Non spécifié'}
+Employé : ${employee_name || 'Non spécifié'}
+Localisation : ${location || 'Non spécifiée'}
+Temps consacré : ${time_spent ? `${time_spent} heures` : 'Non renseigné'}
+Auto-évaluation : ${quality_rating || 'Non renseignée'}
+
+🔹 RÉSUMÉ DES TRAVAUX
 ${summary}
 
-DIFFICULTÉS RENCONTRÉES :
-${difficulties || 'Aucune difficulté particulière signalée'}
+${difficulties ? `🔹 DIFFICULTÉS RENCONTRÉES
+${difficulties}` : ''}
 
-SOLUTIONS MISES EN ŒUVRE :
-${solutions || 'Méthodes standards appliquées'}
+${solutions ? `🔹 SOLUTIONS APPORTÉES  
+${solutions}` : ''}
 
-RECOMMANDATIONS :
-${recommendations || 'Aucune recommandation particulière'}
+${recommendations ? `🔹 RECOMMANDATIONS
+${recommendations}` : ''}
 
-Rédigez un rapport professionnel avec les sections suivantes :
-1. EN-TÊTE avec les informations de base
-2. RÉSUMÉ EXÉCUTIF (2-3 phrases)
-3. DESCRIPTION DES TRAVAUX RÉALISÉS
-4. DIFFICULTÉS ET SOLUTIONS
-5. RECOMMANDATIONS POUR L'AVENIR
-6. CONCLUSION
-
-Utilisez un style formel et professionnel. Le rapport doit faire environ 300-500 mots. [/INST]</s>`
+Respectez exactement cette structure avec les emojis et titres. N'ajoutez aucune section supplémentaire. [/INST]</s>`
 
     const HUGGING_FACE_TOKEN = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN')
     
@@ -174,59 +169,31 @@ function cleanGeneratedReport(report: string): string {
 
 function generateFallbackReport(summary: string, difficulties: string, solutions: string, recommendations: string, time_spent: number, quality_rating: string, location: string, task_title?: string, project_name?: string, employee_name?: string): string {
   const currentDate = new Date().toLocaleDateString('fr-FR', { 
-    weekday: 'long', 
     year: 'numeric', 
     month: 'long', 
     day: 'numeric' 
   })
   
-  return `
-═══════════════════════════════════════════════════════════════
-                    RAPPORT DE FIN DE TÂCHE
-═══════════════════════════════════════════════════════════════
+  return `RAPPORT DE FIN DE TÂCHE
 
-📋 INFORMATIONS GÉNÉRALES
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-• Date d'émission    : ${currentDate}
-• Tâche              : ${task_title || 'Non spécifiée'}
-• Projet             : ${project_name || 'Non spécifié'}
-• Employé            : ${employee_name || 'Non spécifié'}
-• Localisation       : ${location || 'Non spécifiée'}
-• Temps consacré     : ${time_spent ? `${time_spent} heures` : 'Non renseigné'}
-• Auto-évaluation    : ${quality_rating || 'Non renseignée'}
+🔹 INFORMATIONS GÉNÉRALES
+Date d'émission : ${currentDate}
+Tâche : ${task_title || 'Non spécifiée'}
+Projet : ${project_name || 'Non spécifié'}
+Employé : ${employee_name || 'Non spécifié'}
+Localisation : ${location || 'Non spécifiée'}
+Temps consacré : ${time_spent ? `${time_spent} heures` : 'Non renseigné'}
+Auto-évaluation : ${quality_rating || 'Non renseignée'}
 
-📝 RÉSUMÉ EXÉCUTIF
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Les travaux demandés ont été réalisés selon les spécifications établies. 
-Cette mission s'est déroulée dans de bonnes conditions et a permis d'atteindre 
-les objectifs fixés.
-
-🔧 DESCRIPTION DES TRAVAUX RÉALISÉS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔹 RÉSUMÉ DES TRAVAUX
 ${summary}
 
-${difficulties ? `⚠️ DIFFICULTÉS RENCONTRÉES ET SOLUTIONS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Difficultés identifiées :
-${difficulties}
+${difficulties ? `🔹 DIFFICULTÉS RENCONTRÉES
+${difficulties}` : ''}
 
-Solutions mises en œuvre :
-${solutions || 'Des solutions appropriées ont été appliquées pour résoudre les difficultés rencontrées.'}
-` : ''}
+${solutions ? `🔹 SOLUTIONS APPORTÉES
+${solutions}` : ''}
 
-${recommendations ? `💡 RECOMMANDATIONS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${recommendations}
-` : ''}
-
-✅ CONCLUSION
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Mission accomplie avec succès. Les objectifs ont été atteints dans les 
-conditions requises et dans les délais impartis. Les livrables sont 
-conformes aux attentes exprimées.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Rapport automatiquement généré le ${new Date().toLocaleString('fr-FR')}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  `.trim()
+${recommendations ? `🔹 RECOMMANDATIONS
+${recommendations}` : ''}`.trim()
 }

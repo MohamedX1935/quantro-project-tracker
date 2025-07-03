@@ -21,7 +21,7 @@ const TaskReportsViewer = () => {
   const generateDocxFile = async (report: any) => {
     const taskName = report.task?.title || 'Tache_Inconnue';
     const date = new Date(report.created_at).toISOString().split('T')[0];
-    const fileName = `${taskName.replace(/[^a-zA-Z0-9]/g, '_')}_${date}.docx`;
+    const fileName = `rapport_${taskName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}_${date}.doc`;
     
     try {
       // Importer la bibliothèque docx dynamiquement
@@ -43,23 +43,30 @@ const TaskReportsViewer = () => {
           spacing: { after: 400 },
         }),
         
-        // Section informations générales
+        // Section informations générales avec emoji
         new Paragraph({
           children: [
             new TextRun({
-              text: "INFORMATIONS GÉNÉRALES",
+              text: "🔹 INFORMATIONS GÉNÉRALES",
               bold: true,
-              size: 24,
+              size: 20,
             }),
           ],
-          heading: HeadingLevel.HEADING_1,
           spacing: { before: 300, after: 200 },
         }),
         
         new Paragraph({
           children: [
+            new TextRun({ text: "Date d'émission : ", bold: true }),
+            new TextRun({ text: new Date().toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' }) }),
+          ],
+          spacing: { after: 100 },
+        }),
+        
+        new Paragraph({
+          children: [
             new TextRun({ text: "Tâche : ", bold: true }),
-            new TextRun({ text: report.task?.title || 'Non défini' }),
+            new TextRun({ text: report.task?.title || 'Non spécifiée' }),
           ],
           spacing: { after: 100 },
         }),
@@ -67,31 +74,17 @@ const TaskReportsViewer = () => {
         new Paragraph({
           children: [
             new TextRun({ text: "Projet : ", bold: true }),
-            new TextRun({ text: report.task?.project?.name || 'Non défini' }),
+            new TextRun({ text: report.task?.project?.name || 'Non spécifié' }),
           ],
           spacing: { after: 100 },
         }),
         
         new Paragraph({
           children: [
-            new TextRun({ text: "Date de création : ", bold: true }),
-            new TextRun({ text: new Date(report.created_at).toLocaleDateString('fr-FR') }),
-          ],
-          spacing: { after: 100 },
-        }),
-        
-        new Paragraph({
-          children: [
-            new TextRun({ text: "Temps passé : ", bold: true }),
-            new TextRun({ text: report.time_spent ? `${report.time_spent} heures` : 'Non renseigné' }),
-          ],
-          spacing: { after: 100 },
-        }),
-        
-        new Paragraph({
-          children: [
-            new TextRun({ text: "Qualité : ", bold: true }),
-            new TextRun({ text: report.quality_rating || 'Non évaluée' }),
+            new TextRun({ text: "Employé : ", bold: true }),
+            new TextRun({ text: report.employee ? 
+              `${report.employee.first_name || ''} ${report.employee.last_name || ''}`.trim() || report.employee.username :
+              'Employé non identifié' }),
           ],
           spacing: { after: 100 },
         }),
@@ -101,6 +94,22 @@ const TaskReportsViewer = () => {
             new TextRun({ text: "Localisation : ", bold: true }),
             new TextRun({ text: report.location || 'Non spécifiée' }),
           ],
+          spacing: { after: 100 },
+        }),
+        
+        new Paragraph({
+          children: [
+            new TextRun({ text: "Temps consacré : ", bold: true }),
+            new TextRun({ text: report.time_spent ? `${report.time_spent} heures` : 'Non renseigné' }),
+          ],
+          spacing: { after: 100 },
+        }),
+        
+        new Paragraph({
+          children: [
+            new TextRun({ text: "Auto-évaluation : ", bold: true }),
+            new TextRun({ text: report.quality_rating || 'Non renseignée' }),
+          ],
           spacing: { after: 300 },
         }),
         
@@ -108,12 +117,11 @@ const TaskReportsViewer = () => {
         new Paragraph({
           children: [
             new TextRun({
-              text: "RÉSUMÉ DES TRAVAUX EFFECTUÉS",
+              text: "🔹 RÉSUMÉ DES TRAVAUX",
               bold: true,
-              size: 24,
+              size: 20,
             }),
           ],
-          heading: HeadingLevel.HEADING_1,
           spacing: { before: 300, after: 200 },
         }),
         
@@ -131,12 +139,11 @@ const TaskReportsViewer = () => {
           new Paragraph({
             children: [
               new TextRun({
-                text: "DIFFICULTÉS RENCONTRÉES",
+                text: "🔹 DIFFICULTÉS RENCONTRÉES",
                 bold: true,
-                size: 24,
+                size: 20,
               }),
             ],
-            heading: HeadingLevel.HEADING_1,
             spacing: { before: 300, after: 200 },
           }),
           new Paragraph({
@@ -153,12 +160,11 @@ const TaskReportsViewer = () => {
           new Paragraph({
             children: [
               new TextRun({
-                text: "SOLUTIONS MISES EN ŒUVRE",
+                text: "🔹 SOLUTIONS APPORTÉES",
                 bold: true,
-                size: 24,
+                size: 20,
               }),
             ],
-            heading: HeadingLevel.HEADING_1,
             spacing: { before: 300, after: 200 },
           }),
           new Paragraph({
@@ -175,12 +181,11 @@ const TaskReportsViewer = () => {
           new Paragraph({
             children: [
               new TextRun({
-                text: "RECOMMANDATIONS",
+                text: "🔹 RECOMMANDATIONS",
                 bold: true,
-                size: 24,
+                size: 20,
               }),
             ],
-            heading: HeadingLevel.HEADING_1,
             spacing: { before: 300, after: 200 },
           }),
           new Paragraph({
@@ -311,129 +316,9 @@ ${report.generated_report.replace(/\n/g, '\\par ')}\\par
     }
   };
 
-  const generatePdfFile = async (report: any) => {
-    const taskName = report.task?.title || 'Tache_Inconnue';
-    const date = new Date(report.created_at).toISOString().split('T')[0];
-    const fileName = `${taskName.replace(/[^a-zA-Z0-9]/g, '_')}_${date}.pdf`;
-    
+  const handleDownloadReport = async (report: any) => {
     try {
-      // Importer jsPDF dynamiquement
-      const { jsPDF } = await import('jspdf');
-      const doc = new jsPDF();
-      
-      // Configuration de la page
-      const pageWidth = doc.internal.pageSize.width;
-      const margin = 20;
-      const maxLineWidth = pageWidth - (margin * 2);
-      let currentY = 30;
-      
-      // Fonction pour ajouter du texte avec retour à la ligne automatique
-      const addTextWithWrap = (text: string, fontSize: number = 12, fontStyle: 'normal' | 'bold' = 'normal') => {
-        doc.setFontSize(fontSize);
-        doc.setFont('helvetica', fontStyle);
-        const lines = doc.splitTextToSize(text, maxLineWidth);
-        doc.text(lines, margin, currentY);
-        currentY += lines.length * (fontSize * 0.5) + 5;
-        
-        // Vérifier si on doit changer de page
-        if (currentY > doc.internal.pageSize.height - 30) {
-          doc.addPage();
-          currentY = 30;
-        }
-      };
-      
-      // En-tête du document
-      addTextWithWrap('RAPPORT DE FIN DE TÂCHE', 18, 'bold');
-      currentY += 10;
-      
-      // Informations générales
-      addTextWithWrap('INFORMATIONS GÉNÉRALES', 14, 'bold');
-      addTextWithWrap(`Tâche: ${report.task?.title || 'Non défini'}`);
-      addTextWithWrap(`Projet: ${report.task?.project?.name || 'Non défini'}`);
-      addTextWithWrap(`Date: ${new Date(report.created_at).toLocaleDateString('fr-FR')}`);
-      addTextWithWrap(`Temps passé: ${report.time_spent ? `${report.time_spent} heures` : 'Non renseigné'}`);
-      addTextWithWrap(`Qualité: ${report.quality_rating || 'Non évaluée'}`);
-      addTextWithWrap(`Localisation: ${report.location || 'Non spécifiée'}`);
-      currentY += 10;
-      
-      // Résumé des travaux
-      addTextWithWrap('RÉSUMÉ DES TRAVAUX EFFECTUÉS', 14, 'bold');
-      addTextWithWrap(report.summary);
-      currentY += 10;
-      
-      // Difficultés
-      if (report.difficulties) {
-        addTextWithWrap('DIFFICULTÉS RENCONTRÉES', 14, 'bold');
-        addTextWithWrap(report.difficulties);
-        currentY += 10;
-      }
-      
-      // Solutions
-      if (report.solutions) {
-        addTextWithWrap('SOLUTIONS MISES EN ŒUVRE', 14, 'bold');
-        addTextWithWrap(report.solutions);
-        currentY += 10;
-      }
-      
-      // Recommandations
-      if (report.recommendations) {
-        addTextWithWrap('RECOMMANDATIONS', 14, 'bold');
-        addTextWithWrap(report.recommendations);
-        currentY += 10;
-      }
-      
-      // Rapport IA
-      if (report.generated_report) {
-        addTextWithWrap('RAPPORT DÉTAILLÉ GÉNÉRÉ PAR IA', 14, 'bold');
-        addTextWithWrap(report.generated_report);
-      }
-      
-      // Pied de page
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'normal');
-      doc.text(
-        `Document généré automatiquement le ${new Date().toLocaleString('fr-FR')}`,
-        margin,
-        doc.internal.pageSize.height - 15
-      );
-      
-      // Sauvegarder le PDF
-      doc.save(fileName);
-      return fileName;
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      // Fallback vers un téléchargement de texte
-      const content = `RAPPORT DE FIN DE TÂCHE
-${report.task?.title || 'Non défini'}
-${new Date(report.created_at).toLocaleDateString('fr-FR')}
-
-${report.summary}
-
-${report.generated_report || ''}`;
-      
-      const blob = new Blob([content], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName.replace('.pdf', '.txt');
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      return fileName.replace('.pdf', '.txt');
-    }
-  };
-
-  const handleDownloadReport = async (report: any, format: 'doc' | 'pdf') => {
-    try {
-      let fileName = '';
-      
-      if (format === 'doc') {
-        fileName = await generateDocxFile(report);
-      } else {
-        fileName = await generatePdfFile(report);
-      }
+      const fileName = await generateDocxFile(report);
       
       toast({
         title: "Téléchargement réussi",
@@ -520,20 +405,11 @@ ${report.generated_report || ''}`;
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleDownloadReport(report, 'doc')}
+                      onClick={() => handleDownloadReport(report)}
                       className="bg-white/50 hover:bg-white"
                     >
                       <Download className="w-4 h-4 mr-1" />
                       Télécharger DOC
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleDownloadReport(report, 'pdf')}
-                      className="bg-white/50 hover:bg-white"
-                    >
-                      <Download className="w-4 h-4 mr-1" />
-                      Télécharger PDF
                     </Button>
                   </div>
                 </div>

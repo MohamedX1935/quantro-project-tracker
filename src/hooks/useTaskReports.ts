@@ -24,6 +24,11 @@ export interface TaskReport {
       name: string;
     };
   };
+  employee?: {
+    first_name: string | null;
+    last_name: string | null;
+    username: string;
+  };
 }
 
 export const useTaskReports = () => {
