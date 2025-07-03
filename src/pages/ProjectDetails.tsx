@@ -21,7 +21,7 @@ const ProjectDetails = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const { users } = useAuth();
+  const { users, user } = useAuth();
   const { projects, isLoading: projectsLoading } = useProjects();
 
   const project = projects.find(p => p.id === projectId);
@@ -198,6 +198,7 @@ const ProjectDetails = () => {
           title: task.title,
           description: task.description,
           assignee_id: task.assignee_id,
+          assigned_by: user?.id,
           status: task.status,
           priority: task.priority,
           deadline: task.deadline,
