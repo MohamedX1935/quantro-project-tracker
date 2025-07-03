@@ -18,6 +18,11 @@ export interface EmployeeTask {
   project?: {
     name: string;
   };
+  assigned_by_user?: {
+    first_name: string | null;
+    last_name: string | null;
+    username: string;
+  };
 }
 
 export const useEmployeeTasks = () => {
@@ -40,6 +45,11 @@ export const useEmployeeTasks = () => {
           *,
           projects (
             name
+          ),
+          assigned_by_user:app_users!assigned_by (
+            first_name,
+            last_name,
+            username
           )
         `)
         .eq('assignee_id', user.id)

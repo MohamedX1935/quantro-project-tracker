@@ -62,10 +62,16 @@ const EmployeeTasks = () => {
   };
 
   const handleViewDetails = (task: any) => {
+    const assignedByName = task.assigned_by_user 
+      ? (task.assigned_by_user.first_name && task.assigned_by_user.last_name
+          ? `${task.assigned_by_user.first_name} ${task.assigned_by_user.last_name}`
+          : task.assigned_by_user.username)
+      : "Administrateur";
+
     const taskDetails = {
       ...task,
       project: task.project?.name || "Projet non défini",
-      assignedBy: "Administrateur", // Ce sera mis à jour dans TaskDetailsDialog
+      assignedBy: assignedByName,
       createdAt: task.created_at
     };
     setSelectedTask(taskDetails);

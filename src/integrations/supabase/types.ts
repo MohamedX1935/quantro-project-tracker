@@ -120,6 +120,7 @@ export type Database = {
       }
       project_tasks: {
         Row: {
+          assigned_by: string | null
           assignee_id: string | null
           closed_by_admin: boolean | null
           created_at: string
@@ -133,6 +134,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_by?: string | null
           assignee_id?: string | null
           closed_by_admin?: boolean | null
           created_at?: string
@@ -146,6 +148,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_by?: string | null
           assignee_id?: string | null
           closed_by_admin?: boolean | null
           created_at?: string
@@ -159,6 +162,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "project_tasks_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "project_tasks_project_id_fkey"
             columns: ["project_id"]
