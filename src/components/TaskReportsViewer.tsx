@@ -43,11 +43,11 @@ const TaskReportsViewer = () => {
           spacing: { after: 400 },
         }),
         
-        // Section informations générales avec emoji
+        // Section informations générales
         new Paragraph({
           children: [
             new TextRun({
-              text: "🔹 INFORMATIONS GÉNÉRALES",
+              text: "INFORMATIONS GÉNÉRALES",
               bold: true,
               size: 20,
             }),
@@ -117,7 +117,7 @@ const TaskReportsViewer = () => {
         new Paragraph({
           children: [
             new TextRun({
-              text: "🔹 RÉSUMÉ DES TRAVAUX",
+              text: "RÉSUMÉ DES TRAVAUX",
               bold: true,
               size: 20,
             }),
@@ -139,7 +139,7 @@ const TaskReportsViewer = () => {
           new Paragraph({
             children: [
               new TextRun({
-                text: "🔹 DIFFICULTÉS RENCONTRÉES",
+                text: "DIFFICULTÉS RENCONTRÉES",
                 bold: true,
                 size: 20,
               }),
@@ -160,7 +160,7 @@ const TaskReportsViewer = () => {
           new Paragraph({
             children: [
               new TextRun({
-                text: "🔹 SOLUTIONS APPORTÉES",
+                text: "SOLUTIONS APPORTÉES",
                 bold: true,
                 size: 20,
               }),
@@ -181,7 +181,7 @@ const TaskReportsViewer = () => {
           new Paragraph({
             children: [
               new TextRun({
-                text: "🔹 RECOMMANDATIONS",
+                text: "RECOMMANDATIONS",
                 bold: true,
                 size: 20,
               }),
@@ -197,29 +197,6 @@ const TaskReportsViewer = () => {
         );
       }
       
-      if (report.generated_report && report.generated_report.trim() && 
-          !report.generated_report.includes('non disponible') && 
-          !report.generated_report.includes('Erreur')) {
-        paragraphs.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: "RAPPORT DÉTAILLÉ GÉNÉRÉ PAR IA",
-                bold: true,
-                size: 24,
-              }),
-            ],
-            heading: HeadingLevel.HEADING_1,
-            spacing: { before: 300, after: 200 },
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: report.generated_report }),
-            ],
-            spacing: { after: 300 },
-          })
-        );
-      }
       
       // Pied de page
       paragraphs.push(
@@ -291,13 +268,6 @@ ${report.solutions.replace(/\n/g, '\\par ')}\\par
 ${report.recommendations ? `{\\b\\fs28 RECOMMANDATIONS\\par}
 \\par
 ${report.recommendations.replace(/\n/g, '\\par ')}\\par
-\\par` : ''}
-${report.generated_report && report.generated_report.trim() && 
-  !report.generated_report.includes('non disponible') && 
-  !report.generated_report.includes('Erreur') ? 
-  `{\\b\\fs28 RAPPORT DÉTAILLÉ GÉNÉRÉ PAR IA\\par}
-\\par
-${report.generated_report.replace(/\n/g, '\\par ')}\\par
 \\par` : ''}
 {\\i\\qc Document généré automatiquement le ${new Date().toLocaleString('fr-FR')}\\par}
 }`;
@@ -463,16 +433,6 @@ ${report.generated_report.replace(/\n/g, '\\par ')}\\par
               </div>
             )}
 
-            {selectedReport?.generated_report && selectedReport.generated_report.trim() && 
-             !selectedReport.generated_report.includes('non disponible') && 
-             !selectedReport.generated_report.includes('Erreur') && (
-              <div className="p-4 bg-white border rounded-lg">
-                <h4 className="font-medium mb-2">Rapport généré par IA</h4>
-                <div className="text-sm text-slate-700 whitespace-pre-line">
-                  {selectedReport.generated_report}
-                </div>
-              </div>
-            )}
           </div>
         </DialogContent>
       </Dialog>
