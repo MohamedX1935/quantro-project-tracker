@@ -112,7 +112,7 @@ export const useTaskReports = () => {
     difficulties?: string;
     solutions?: string;
     recommendations?: string;
-    time_spent?: number;
+    time_spent?: string | number;
     quality_rating?: string;
     location?: string;
     attachments?: any[];
@@ -151,7 +151,7 @@ export const useTaskReports = () => {
         difficulties: reportData.difficulties || null,
         solutions: reportData.solutions || null,
         recommendations: reportData.recommendations || null,
-        time_spent: reportData.time_spent,
+        time_spent: reportData.time_spent ? parseFloat(reportData.time_spent.toString()) : null,
         quality_rating: reportData.quality_rating || null,
         location: reportData.location || null,
         attachments: reportData.attachments || [],
