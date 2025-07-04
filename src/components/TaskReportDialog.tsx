@@ -43,7 +43,12 @@ const TaskReportDialog = ({ task, open, onOpenChange, onComplete }: TaskReportDi
     const uploadedFiles = [];
     
     for (const file of attachments) {
-      const fileName = `${user.id}/${task.id}/${Date.now()}_${file.name}`;
+      // Nettoyer le nom du fichier pour éviter les caractères spéciaux
+      const cleanFileName = file.name
+        .replace(/[^a-zA-Z0-9.-]/g, '_') // Remplacer tous les caractères spéciaux par _
+        .replace(/_{2,}/g, '_'); // Remplacer les _ multiples par un seul
+      
+      const fileName = `${user.id}/${task.id}/${Date.now()}_${cleanFileName}`;
       
       const { data, error } = await supabase.storage
         .from('task-reports')
