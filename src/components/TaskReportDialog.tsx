@@ -34,10 +34,10 @@ const TaskReportDialog = ({ task, open, onOpenChange, onComplete }: TaskReportDi
   };
 
   const handleSubmitReport = async () => {
-    if (!summary || !timeSpent) {
+    if (!summary || !timeSpent || !quality) {
       toast({
         title: "Erreur",
-        description: "Veuillez remplir au minimum le résumé et le temps passé.",
+        description: "Veuillez remplir au minimum le résumé, le temps passé et la qualité du travail.",
         variant: "destructive"
       });
       return;
@@ -163,7 +163,7 @@ const TaskReportDialog = ({ task, open, onOpenChange, onComplete }: TaskReportDi
             </div>
 
             <div className="space-y-2">
-              <Label>Qualité du travail</Label>
+              <Label>Qualité du travail *</Label>
               <Select value={quality} onValueChange={setQuality}>
                 <SelectTrigger>
                   <SelectValue placeholder="Auto-évaluation" />
