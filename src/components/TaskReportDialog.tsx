@@ -54,11 +54,13 @@ const TaskReportDialog = ({ task, open, onOpenChange, onComplete }: TaskReportDi
         difficulties,
         solutions,
         recommendations,
-        time_spent: timeSpent ? parseFloat(timeSpent) : null,
-        quality_rating: quality || null,
+        time_spent: parseFloat(timeSpent),
+        quality_rating: quality,
         location,
         attachments: attachments.map(f => f.name)
       };
+
+      console.log("Données du rapport avant envoi:", reportData);
 
       console.log("Création du rapport avec IA:", reportData);
 

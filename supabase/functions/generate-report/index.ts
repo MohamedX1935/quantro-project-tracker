@@ -21,7 +21,7 @@ serve(async (req) => {
 
 RAPPORT DE FIN DE TÂCHE
 
-🔹 INFORMATIONS GÉNÉRALES
+INFORMATIONS GÉNÉRALES
 Date d'émission : ${new Date().toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' })}
 Tâche : ${task_title || 'Non spécifiée'}
 Projet : ${project_name || 'Non spécifié'}
@@ -30,19 +30,19 @@ Localisation : ${location || 'Non spécifiée'}
 Temps consacré : ${time_spent ? `${time_spent} heures` : 'Non renseigné'}
 Auto-évaluation : ${quality_rating || 'Non renseignée'}
 
-🔹 RÉSUMÉ DES TRAVAUX
+RÉSUMÉ DES TRAVAUX
 ${summary}
 
-${difficulties ? `🔹 DIFFICULTÉS RENCONTRÉES
+${difficulties ? `DIFFICULTÉS RENCONTRÉES
 ${difficulties}` : ''}
 
-${solutions ? `🔹 SOLUTIONS APPORTÉES  
+${solutions ? `SOLUTIONS APPORTÉES  
 ${solutions}` : ''}
 
-${recommendations ? `🔹 RECOMMANDATIONS
+${recommendations ? `RECOMMANDATIONS
 ${recommendations}` : ''}
 
-Respectez exactement cette structure avec les emojis et titres. N'ajoutez aucune section supplémentaire. [/INST]</s>`
+Respectez exactement cette structure sans emojis et titres clairs. N'ajoutez aucune section supplémentaire. [/INST]</s>`
 
     const HUGGING_FACE_TOKEN = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN')
     
@@ -176,7 +176,7 @@ function generateFallbackReport(summary: string, difficulties: string, solutions
   
   return `RAPPORT DE FIN DE TÂCHE
 
-🔹 INFORMATIONS GÉNÉRALES
+INFORMATIONS GÉNÉRALES
 Date d'émission : ${currentDate}
 Tâche : ${task_title || 'Non spécifiée'}
 Projet : ${project_name || 'Non spécifié'}
@@ -185,15 +185,15 @@ Localisation : ${location || 'Non spécifiée'}
 Temps consacré : ${time_spent ? `${time_spent} heures` : 'Non renseigné'}
 Auto-évaluation : ${quality_rating || 'Non renseignée'}
 
-🔹 RÉSUMÉ DES TRAVAUX
+RÉSUMÉ DES TRAVAUX
 ${summary}
 
-${difficulties ? `🔹 DIFFICULTÉS RENCONTRÉES
+${difficulties ? `DIFFICULTÉS RENCONTRÉES
 ${difficulties}` : ''}
 
-${solutions ? `🔹 SOLUTIONS APPORTÉES
+${solutions ? `SOLUTIONS APPORTÉES
 ${solutions}` : ''}
 
-${recommendations ? `🔹 RECOMMANDATIONS
+${recommendations ? `RECOMMANDATIONS
 ${recommendations}` : ''}`.trim()
 }

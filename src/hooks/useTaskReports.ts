@@ -143,21 +143,26 @@ export const useTaskReports = () => {
 
       console.log('Generated AI report successfully, inserting into database...');
 
+      // Préparer les données pour l'insertion avec gestion des valeurs obligatoires
+      const insertData = {
+        task_id: reportData.task_id,
+        employee_id: user.id,
+        summary: reportData.summary,
+        difficulties: reportData.difficulties || null,
+        solutions: reportData.solutions || null,
+        recommendations: reportData.recommendations || null,
+        time_spent: reportData.time_spent,
+        quality_rating: reportData.quality_rating || null,
+        location: reportData.location || null,
+        attachments: reportData.attachments || [],
+        generated_report: generatedReport
+      };
+
+      console.log('Données à insérer en base:', insertData);
+
       const { data, error } = await supabase
         .from('task_reports')
-        .insert({
-          task_id: reportData.task_id,
-          employee_id: user.id,
-          summary: reportData.summary,
-          difficulties: reportData.difficulties,
-          solutions: reportData.solutions,
-          recommendations: reportData.recommendations,
-          time_spent: reportData.time_spent,
-          quality_rating: reportData.quality_rating,
-          location: reportData.location,
-          attachments: reportData.attachments || [],
-          generated_report: generatedReport
-        })
+        .insert(insertData)
         .select()
         .single();
 
