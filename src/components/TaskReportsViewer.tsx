@@ -197,6 +197,42 @@ const TaskReportsViewer = () => {
         );
       }
       
+      // Ajouter les fichiers joints s'il y en a
+      if (report.attachments && report.attachments.length > 0) {
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "FICHIERS JOINTS",
+                bold: true,
+                size: 20,
+              }),
+            ],
+            spacing: { before: 300, after: 200 },
+          })
+        );
+        
+        report.attachments.forEach((filename: string) => {
+          paragraphs.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: `• ${filename}` }),
+              ],
+              spacing: { after: 100 },
+            })
+          );
+        });
+        
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: "" }),
+            ],
+            spacing: { after: 200 },
+          })
+        );
+      }
+      
       
       // Pied de page
       paragraphs.push(
@@ -271,6 +307,10 @@ ${report.solutions.replace(/\n/g, '\\par ')}\\par
 ${report.recommendations ? `{\\b\\fs28 RECOMMANDATIONS\\par}
 \\par
 ${report.recommendations.replace(/\n/g, '\\par ')}\\par
+\\par` : ''}
+${report.attachments && report.attachments.length > 0 ? `{\\b\\fs28 FICHIERS JOINTS\\par}
+\\par
+${report.attachments.map((filename: string) => `• ${filename}`).join('\\par ')}\\par
 \\par` : ''}
 {\\i\\qc Document généré automatiquement le ${new Date().toLocaleString('fr-FR')}\\par}
 }`;
@@ -433,6 +473,26 @@ ${report.recommendations.replace(/\n/g, '\\par ')}\\par
               <div className="p-4 bg-green-50 rounded-lg">
                 <h4 className="font-medium mb-2">Recommandations</h4>
                 <p className="text-sm text-slate-700">{selectedReport.recommendations}</p>
+              </div>
+            )}
+
+            {selectedReport?.attachments && selectedReport.attachments.length > 0 && (
+              <div className="p-4 bg-purple-50 rounded-lg">
+                <h4 className="font-medium mb-2 flex items-center">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Fichiers joints ({selectedReport.attachments.length})
+                </h4>
+                <div className="space-y-2">
+                  {selectedReport.attachments.map((filename: string, index: number) => (
+                    <div key={index} className="flex items-center text-sm text-slate-700 bg-white p-2 rounded border">
+                      <FileText className="w-4 h-4 mr-2 text-slate-500" />
+                      <span className="flex-1">{filename}</span>
+                      <Badge variant="outline" className="text-xs">
+                        Fichier joint
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
