@@ -54,7 +54,7 @@ const TaskReportDialog = ({ task, open, onOpenChange, onComplete }: TaskReportDi
         difficulties,
         solutions,
         recommendations,
-        time_spent: parseFloat(timeSpent),
+        time_spent: timeSpent,
         quality_rating: quality,
         location,
         attachments: attachments.map(f => f.name)
