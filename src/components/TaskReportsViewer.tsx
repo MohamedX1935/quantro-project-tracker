@@ -248,10 +248,13 @@ const TaskReportsViewer = () => {
 \\par
 {\\b Tâche :} ${report.task?.title || 'Non défini'}\\par
 {\\b Projet :} ${report.task?.project?.name || 'Non défini'}\\par
+{\\b Employé :} ${report.employee ? 
+  `${report.employee.first_name || ''} ${report.employee.last_name || ''}`.trim() || report.employee.username :
+  'Employé non identifié'}\\par
 {\\b Date :} ${new Date(report.created_at).toLocaleDateString('fr-FR')}\\par
+{\\b Localisation :} ${report.location || 'Non spécifiée'}\\par
 {\\b Temps passé :} ${report.time_spent ? `${report.time_spent} heures` : 'Non renseigné'}\\par
 {\\b Qualité :} ${report.quality_rating || 'Non évaluée'}\\par
-{\\b Localisation :} ${report.location || 'Non spécifiée'}\\par
 \\par
 {\\b\\fs28 RÉSUMÉ DES TRAVAUX EFFECTUÉS\\par}
 \\par

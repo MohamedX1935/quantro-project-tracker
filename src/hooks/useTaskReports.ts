@@ -69,16 +69,31 @@ export const useTaskReports = () => {
 
       console.log('Task reports fetched:', data);
       
+      // Récupérer les informations des employés pour chaque rapport
+      const employeeIds = [...new Set(data?.map(report => report.employee_id))];
+      const { data: employees } = await supabase
+        .from('app_users')
+        .select('id, first_name, last_name, username')
+        .in('id', employeeIds);
+
       // Transformer les données pour correspondre à l'interface TaskReport
-      const transformedReports = data?.map(report => ({
-        ...report,
-        task: {
-          title: report.project_tasks?.title || 'Titre non disponible',
-          project: {
-            name: report.project_tasks?.projects?.name || 'Projet non défini'
-          }
-        }
-      })) || [];
+      const transformedReports = data?.map(report => {
+        const employee = employees?.find(emp => emp.id === report.employee_id);
+        return {
+          ...report,
+          task: {
+            title: report.project_tasks?.title || 'Titre non disponible',
+            project: {
+              name: report.project_tasks?.projects?.name || 'Projet non défini'
+            }
+          },
+          employee: employee ? {
+            first_name: employee.first_name,
+            last_name: employee.last_name,
+            username: employee.username
+          } : null
+        };
+      }) || [];
 
       setReports(transformedReports);
     } catch (error) {
