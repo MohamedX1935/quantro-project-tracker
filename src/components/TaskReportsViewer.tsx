@@ -4,18 +4,87 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { FileText, Download, Eye, Calendar } from "lucide-react";
+import { FileText, Download, Eye, Calendar, Image } from "lucide-react";
 import { useTaskReports } from "@/hooks/useTaskReports";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const TaskReportsViewer = () => {
   const [selectedReport, setSelectedReport] = useState<any>(null);
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
   const { reports, isLoading } = useTaskReports();
 
   const handleViewReport = (report: any) => {
     setSelectedReport(report);
     setIsReportDialogOpen(true);
+  };
+
+  const handleDownloadFile = async (filePath: string, fileName: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('task-reports')
+        .download(filePath);
+
+      if (error) {
+        console.error('Erreur téléchargement:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de télécharger le fichier.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Créer l'URL de téléchargement
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Succès",
+        description: `Fichier ${fileName} téléchargé avec succès.`,
+      });
+    } catch (error) {
+      console.error('Erreur téléchargement:', error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur s'est produite lors du téléchargement.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleViewImage = async (filePath: string) => {
+    try {
+      const { data } = await supabase.storage
+        .from('task-reports')
+        .getPublicUrl(filePath);
+      
+      setSelectedImage(data.publicUrl);
+      setIsImageDialogOpen(true);
+    } catch (error) {
+      console.error('Erreur visualisation image:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'afficher l'image.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const isImageFile = (fileName: string | undefined) => {
+    if (!fileName) return false;
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'];
+    return imageExtensions.some(ext => 
+      fileName.toLowerCase().endsWith(ext)
+    );
   };
 
   const generateDocxFile = async (report: any) => {
@@ -212,11 +281,11 @@ const TaskReportsViewer = () => {
           })
         );
         
-        report.attachments.forEach((filename: string) => {
+        report.attachments.forEach((attachment: any) => {
           paragraphs.push(
             new Paragraph({
               children: [
-                new TextRun({ text: `• ${filename}` }),
+                new TextRun({ text: `• ${attachment.name || attachment}` }),
               ],
               spacing: { after: 100 },
             })
@@ -310,7 +379,7 @@ ${report.recommendations.replace(/\n/g, '\\par ')}\\par
 \\par` : ''}
 ${report.attachments && report.attachments.length > 0 ? `{\\b\\fs28 FICHIERS JOINTS\\par}
 \\par
-${report.attachments.map((filename: string) => `• ${filename}`).join('\\par ')}\\par
+${report.attachments.map((attachment: any) => `• ${attachment.name || attachment}`).join('\\par ')}\\par
 \\par` : ''}
 {\\i\\qc Document généré automatiquement le ${new Date().toLocaleString('fr-FR')}\\par}
 }`;
@@ -483,19 +552,63 @@ ${report.attachments.map((filename: string) => `• ${filename}`).join('\\par ')
                   Fichiers joints ({selectedReport.attachments.length})
                 </h4>
                 <div className="space-y-2">
-                  {selectedReport.attachments.map((filename: string, index: number) => (
-                    <div key={index} className="flex items-center text-sm text-slate-700 bg-white p-2 rounded border">
-                      <FileText className="w-4 h-4 mr-2 text-slate-500" />
-                      <span className="flex-1">{filename}</span>
-                      <Badge variant="outline" className="text-xs">
-                        Fichier joint
-                      </Badge>
+                  {selectedReport.attachments.map((attachment: any, index: number) => (
+                    <div key={index} className="flex items-center text-sm text-slate-700 bg-white p-3 rounded border">
+                      <div className="flex items-center flex-1">
+                        {isImageFile(attachment.name) ? (
+                          <Image className="w-4 h-4 mr-2 text-green-600" />
+                        ) : (
+                          <FileText className="w-4 h-4 mr-2 text-slate-500" />
+                        )}
+                        <span className="flex-1">{attachment.name}</span>
+                        <Badge variant="outline" className="text-xs ml-2">
+                          {attachment.type || 'Fichier'}
+                        </Badge>
+                      </div>
+                      <div className="flex gap-2 ml-4">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDownloadFile(attachment.path, attachment.name)}
+                          className="h-7 px-2"
+                        >
+                          <Download className="w-3 h-3" />
+                        </Button>
+                        {isImageFile(attachment.name) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleViewImage(attachment.path)}
+                            className="h-7 px-2"
+                          >
+                            <Eye className="w-3 h-3" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog pour l'affichage des images */}
+      <Dialog open={isImageDialogOpen} onOpenChange={setIsImageDialogOpen}>
+        <DialogContent className="sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Prévisualisation de l'image</DialogTitle>
+          </DialogHeader>
+          <div className="flex justify-center">
+            {selectedImage && (
+              <img 
+                src={selectedImage} 
+                alt="Fichier joint" 
+                className="max-w-full max-h-[70vh] object-contain rounded-lg"
+              />
+            )}
           </div>
         </DialogContent>
       </Dialog>

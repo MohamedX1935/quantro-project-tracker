@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Paperclip, MapPin, Send } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface TaskReportDialogProps {
   task: any;
@@ -33,6 +35,36 @@ const TaskReportDialog = ({ task, open, onOpenChange, onComplete }: TaskReportDi
     }
   };
 
+  const { user } = useAuth();
+  
+  const uploadAttachments = async () => {
+    if (attachments.length === 0 || !user) return [];
+    
+    const uploadedFiles = [];
+    
+    for (const file of attachments) {
+      const fileName = `${user.id}/${task.id}/${Date.now()}_${file.name}`;
+      
+      const { data, error } = await supabase.storage
+        .from('task-reports')
+        .upload(fileName, file);
+      
+      if (error) {
+        console.error('Erreur upload fichier:', error);
+        throw new Error(`Erreur lors de l'upload de ${file.name}`);
+      }
+      
+      uploadedFiles.push({
+        name: file.name,
+        path: fileName,
+        size: file.size,
+        type: file.type
+      });
+    }
+    
+    return uploadedFiles;
+  };
+
   const handleSubmitReport = async () => {
     if (!summary || !timeSpent || !quality) {
       toast({
@@ -46,6 +78,9 @@ const TaskReportDialog = ({ task, open, onOpenChange, onComplete }: TaskReportDi
     setIsGeneratingReport(true);
 
     try {
+      // Upload des fichiers d'abord
+      const uploadedFiles = await uploadAttachments();
+      
       const reportData = {
         task_id: task.id,
         task_title: task.title,
@@ -57,7 +92,7 @@ const TaskReportDialog = ({ task, open, onOpenChange, onComplete }: TaskReportDi
         time_spent: timeSpent,
         quality_rating: quality,
         location,
-        attachments: attachments.map(f => f.name)
+        attachments: uploadedFiles
       };
 
       console.log("Données du rapport avant envoi:", reportData);
