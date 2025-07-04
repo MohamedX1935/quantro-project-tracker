@@ -118,11 +118,22 @@ const TaskReportDialog = ({ task, open, onOpenChange, onComplete }: TaskReportDi
       setAttachments([]);
       setLocation("");
     } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Une erreur s'est produite lors de la génération du rapport.",
-        variant: "destructive"
-      });
+      console.error("Erreur détaillée:", error);
+      
+      // Vérifier si c'est une erreur d'upload de fichier
+      if (error.message && error.message.includes("upload")) {
+        toast({
+          title: "Erreur d'upload",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Erreur",
+          description: "Une erreur s'est produite lors de la génération du rapport.",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsGeneratingReport(false);
     }
