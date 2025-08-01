@@ -253,31 +253,6 @@ ${taskReport.generated_report}` : ''}
                 </div>
               )}
 
-              {selectedReport.generated_report && (
-                <div className="p-4 bg-white border rounded-lg">
-                  <h4 className="font-medium mb-2">Rapport généré par IA</h4>
-                  <div className="text-sm text-slate-700 whitespace-pre-line">
-                    {selectedReport.generated_report}
-                  </div>
-                </div>
-              )}
-
-              <div className="flex justify-end space-x-2 pt-4 border-t">
-                <Button 
-                  variant="outline"
-                  onClick={() => handleDownloadReport('doc')}
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Télécharger DOC
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => handleDownloadReport('pdf')}
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Télécharger PDF
-                </Button>
-              </div>
             </div>
           )}
         </DialogContent>
