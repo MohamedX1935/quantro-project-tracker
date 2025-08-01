@@ -160,35 +160,15 @@ ${taskReport.generated_report}` : ''}
         {task.status === "Terminé" && !task.closed_by_admin && (
           <>
             {taskReport && (
-              <div className="flex space-x-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700"
-                  onClick={handleViewReport}
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  Voir rapport
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
-                  onClick={() => handleDownloadReport('pdf')}
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  PDF
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
-                  onClick={() => handleDownloadReport('doc')}
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  DOC
-                </Button>
-              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700"
+                onClick={handleViewReport}
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Voir rapport
+              </Button>
             )}
             <Button 
               variant="outline" 
