@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -15,14 +15,20 @@ import ProjectTaskActions from "@/components/ProjectTaskActions";
 const ProjectDetails = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [assignedEmployees, setAssignedEmployees] = useState<any[]>([]);
   const [projectTasks, setProjectTasks] = useState<any[]>([]);
   const [showCreateTask, setShowCreateTask] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null);
   const { users, user } = useAuth();
   const { projects, isLoading: projectsLoading } = useProjects();
+
+  // Vérifier s'il y a un taskId dans l'URL
+  const taskIdFromUrl = searchParams.get('taskId');
 
   const project = projects.find(p => p.id === projectId);
 
@@ -38,6 +44,21 @@ const ProjectDetails = () => {
       loadProjectData();
     }
   }, [projectId]);
+
+  // Gérer l'ouverture automatique de l'onglet des tâches et la mise en évidence
+  useEffect(() => {
+    if (taskIdFromUrl && projectTasks.length > 0) {
+      const taskExists = projectTasks.find(task => task.id === taskIdFromUrl);
+      if (taskExists) {
+        setActiveTab("tasks");
+        setHighlightedTaskId(taskIdFromUrl);
+        // Retirer la mise en évidence après 3 secondes
+        setTimeout(() => {
+          setHighlightedTaskId(null);
+        }, 3000);
+      }
+    }
+  }, [taskIdFromUrl, projectTasks]);
 
   const loadProjectData = async () => {
     if (!projectId) return;
@@ -361,7 +382,7 @@ const ProjectDetails = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs defaultValue="overview" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="grid w-full grid-cols-3 bg-white/60 backdrop-blur-sm border border-slate-200 shadow-sm">
             <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
             <TabsTrigger value="team">Équipe ({assignedEmployees.length})</TabsTrigger>
@@ -500,7 +521,14 @@ const ProjectDetails = () => {
 
             <div className="space-y-3">
               {projectTasks.map((task) => (
-                <Card key={task.id} className="bg-white/80 backdrop-blur-sm border-slate-200">
+                <Card 
+                  key={task.id} 
+                  className={`bg-white/80 backdrop-blur-sm border-slate-200 transition-all duration-300 ${
+                    highlightedTaskId === task.id 
+                      ? 'ring-2 ring-blue-500 bg-blue-50/50 shadow-lg' 
+                      : ''
+                  }`}
+                >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0 mr-4">

@@ -25,6 +25,7 @@ import UserManagement from "@/components/UserManagement";
 import ExtensionRequestsManager from "@/components/ExtensionRequestsManager";
 import TaskReportsViewer from "@/components/TaskReportsViewer";
 import EmployeeTasks from "@/components/EmployeeTasks";
+import WeeklyPlanning from "@/components/WeeklyPlanning";
 
 const Index = () => {
   const { user, logout } = useAuth();
@@ -136,6 +137,7 @@ const Index = () => {
           <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-white/60 backdrop-blur-sm border border-slate-200 shadow-sm p-1 text-muted-foreground w-fit">
             <TabsTrigger value="dashboard">Tableau de bord</TabsTrigger>
             <TabsTrigger value="projects">Projets</TabsTrigger>
+            <TabsTrigger value="planning">Planning</TabsTrigger>
             <TabsTrigger value="team">Équipe</TabsTrigger>
             <TabsTrigger value="extensions">Prolongations</TabsTrigger>
             <TabsTrigger value="reports">Rapports</TabsTrigger>
@@ -307,6 +309,9 @@ const Index = () => {
             <ProjectsOverview />
           </TabsContent>
 
+          <TabsContent value="planning">
+            <WeeklyPlanning />
+          </TabsContent>
 
           <TabsContent value="team">
             <TeamDashboard />
