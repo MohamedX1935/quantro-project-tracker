@@ -27,7 +27,7 @@ interface TasksByDay {
 
 export const useWeeklyPlanning = () => {
   const [currentWeekStart, setCurrentWeekStart] = useState(() => 
-    startOfWeek(new Date(), { weekStartsOn: 1 }) // Lundi = 1
+    startOfWeek(new Date(), { weekStartsOn: 1 })
   );
   const [tasksByDay, setTasksByDay] = useState<TasksByDay>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -39,39 +39,56 @@ export const useWeeklyPlanning = () => {
 
   const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
 
-  const fetchEmployees = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('app_users')
-        .select('id, username, first_name, last_name')
-        .eq('role', 'employee');
-      
-      if (error) throw error;
-      setEmployees(data || []);
-    } catch (err) {
-      console.error('Erreur lors du chargement des employés:', err);
+  // Fonction pour initialiser la grille de la semaine
+  const initializeWeekGrid = useCallback(() => {
+    const grid: TasksByDay = {};
+    for (let i = 0; i < 7; i++) {
+      const dayDate = new Date(currentWeekStart);
+      dayDate.setDate(dayDate.getDate() + i);
+      const dayKey = format(dayDate, 'yyyy-MM-dd');
+      grid[dayKey] = [];
     }
+    return grid;
+  }, [currentWeekStart]);
+
+  // Charger les employés et projets une seule fois
+  useEffect(() => {
+    const loadStaticData = async () => {
+      try {
+        const [employeesResult, projectsResult] = await Promise.all([
+          supabase
+            .from('app_users')
+            .select('id, username, first_name, last_name')
+            .eq('role', 'employee'),
+          supabase
+            .from('projects')
+            .select('id, name')
+        ]);
+
+        if (employeesResult.error) throw employeesResult.error;
+        if (projectsResult.error) throw projectsResult.error;
+
+        setEmployees(employeesResult.data || []);
+        setProjects(projectsResult.data || []);
+      } catch (err) {
+        console.error('Erreur lors du chargement des données statiques:', err);
+      }
+    };
+
+    loadStaticData();
   }, []);
 
-  const fetchProjects = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('id, name');
-      
-      if (error) throw error;
-      setProjects(data || []);
-    } catch (err) {
-      console.error('Erreur lors du chargement des projets:', err);
-    }
-  }, []);
-
+  // Charger les tâches de la semaine
   const fetchWeeklyTasks = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      let query = supabase
+      // Initialiser la grille avec des jours vides
+      const weekGrid = initializeWeekGrid();
+
+      // Construire la requête pour les tâches
+      let tasksQuery = supabase
         .from('project_tasks')
         .select(`
           id,
@@ -81,79 +98,78 @@ export const useWeeklyPlanning = () => {
           deadline,
           assignee_id,
           project_id,
-          projects (
+          projects!inner (
             name
           )
         `)
         .gte('deadline', format(currentWeekStart, 'yyyy-MM-dd'))
         .lte('deadline', format(weekEnd, 'yyyy-MM-dd'))
+        .not('deadline', 'is', null)
         .order('deadline', { ascending: true });
 
-      // Filtrer par employé si sélectionné
+      // Appliquer les filtres
       if (selectedEmployee) {
-        query = query.eq('assignee_id', selectedEmployee);
+        tasksQuery = tasksQuery.eq('assignee_id', selectedEmployee);
       }
-
-      // Filtrer par projet si sélectionné
       if (selectedProject) {
-        query = query.eq('project_id', selectedProject);
+        tasksQuery = tasksQuery.eq('project_id', selectedProject);
       }
 
-      const { data: tasks, error: tasksError } = await query;
+      const { data: tasks, error: tasksError } = await tasksQuery;
 
       if (tasksError) throw tasksError;
 
-      // Récupérer les informations des assignés
-      const assigneeIds = [...new Set(tasks?.map(task => task.assignee_id).filter(Boolean))];
-      let assignees = [];
-      
-      if (assigneeIds.length > 0) {
-        const { data: assigneesData, error: assigneesError } = await supabase
-          .from('app_users')
-          .select('id, username, first_name, last_name')
-          .in('id', assigneeIds);
+      // Enrichir les tâches avec les données des assignés
+      if (tasks && tasks.length > 0) {
+        const assigneeIds = [...new Set(tasks.map(task => task.assignee_id).filter(Boolean))];
+        
+        let assigneesMap = new Map();
+        if (assigneeIds.length > 0) {
+          const { data: assignees, error: assigneesError } = await supabase
+            .from('app_users')
+            .select('id, username, first_name, last_name')
+            .in('id', assigneeIds);
 
-        if (assigneesError) throw assigneesError;
-        assignees = assigneesData || [];
-      }
-
-      // Mapper les assignés aux tâches
-      const tasksWithAssignees = tasks?.map(task => ({
-        ...task,
-        assignee: assignees?.find(assignee => assignee.id === task.assignee_id),
-        project: task.projects
-      })) || [];
-
-      // Grouper les tâches par jour
-      const grouped: TasksByDay = {};
-      
-      // Initialiser tous les jours de la semaine
-      for (let i = 0; i < 7; i++) {
-        const dayDate = new Date(currentWeekStart);
-        dayDate.setDate(dayDate.getDate() + i);
-        const dayKey = format(dayDate, 'yyyy-MM-dd');
-        grouped[dayKey] = [];
-      }
-
-      // Répartir les tâches par jour
-      tasksWithAssignees.forEach(task => {
-        if (task.deadline) {
-          const taskDate = format(new Date(task.deadline), 'yyyy-MM-dd');
-          if (grouped[taskDate]) {
-            grouped[taskDate].push(task);
-          }
+          if (assigneesError) throw assigneesError;
+          
+          assignees?.forEach(assignee => {
+            assigneesMap.set(assignee.id, assignee);
+          });
         }
-      });
 
-      setTasksByDay(grouped);
+        // Distribuer les tâches par jour
+        tasks.forEach(task => {
+          if (task.deadline) {
+            const taskDate = format(new Date(task.deadline), 'yyyy-MM-dd');
+            if (weekGrid[taskDate]) {
+              const enrichedTask: WeeklyTask = {
+                ...task,
+                assignee: task.assignee_id ? assigneesMap.get(task.assignee_id) : undefined,
+                project: task.projects
+              };
+              weekGrid[taskDate].push(enrichedTask);
+            }
+          }
+        });
+      }
+
+      setTasksByDay(weekGrid);
     } catch (err) {
       console.error('Erreur lors du chargement des tâches:', err);
       setError('Erreur lors du chargement des tâches');
+      // En cas d'erreur, afficher quand même la grille vide
+      setTasksByDay(initializeWeekGrid());
     } finally {
       setIsLoading(false);
     }
-  }, [currentWeekStart, weekEnd, selectedEmployee, selectedProject]);
+  }, [currentWeekStart, weekEnd, selectedEmployee, selectedProject, initializeWeekGrid]);
 
+  // Charger les tâches quand la semaine ou les filtres changent
+  useEffect(() => {
+    fetchWeeklyTasks();
+  }, [fetchWeeklyTasks]);
+
+  // Navigation entre les semaines
   const goToPreviousWeek = useCallback(() => {
     setCurrentWeekStart(prev => addWeeks(prev, -1));
   }, []);
@@ -166,6 +182,7 @@ export const useWeeklyPlanning = () => {
     setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
   }, []);
 
+  // Utilitaires
   const isCurrentWeek = useCallback(() => {
     const thisWeekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
     return isSameDay(currentWeekStart, thisWeekStart);
@@ -174,15 +191,6 @@ export const useWeeklyPlanning = () => {
   const isToday = useCallback((date: Date) => {
     return isSameDay(date, new Date());
   }, []);
-
-  useEffect(() => {
-    fetchEmployees();
-    fetchProjects();
-  }, [fetchEmployees, fetchProjects]);
-
-  useEffect(() => {
-    fetchWeeklyTasks();
-  }, [fetchWeeklyTasks]);
 
   return {
     currentWeekStart,

@@ -16,7 +16,8 @@ import {
   Clock,
   Filter,
   RotateCcw,
-  Eye
+  Eye,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
@@ -40,40 +41,39 @@ const WeeklyPlanning = () => {
     goToNextWeek,
     goToCurrentWeek,
     isCurrentWeek,
-    isToday,
-    refreshTasks
+    isToday
   } = useWeeklyPlanning();
 
-  const getStatusColor = (status: string) => {
+  const getStatusVariant = (status: string) => {
     switch (status) {
       case 'Terminé':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-green-50 text-green-700 border-green-200';
       case 'En cours':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-blue-50 text-blue-700 border-blue-200';
       case 'En attente':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-yellow-50 text-yellow-700 border-yellow-200';
       case 'Reporté':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-red-50 text-red-700 border-red-200';
       default:
-        return 'bg-slate-100 text-slate-800 border-slate-200';
+        return 'bg-gray-50 text-gray-700 border-gray-200';
     }
   };
 
-  const getPriorityColor = (priority: string) => {
+  const getPriorityVariant = (priority: string) => {
     switch (priority) {
       case 'haute':
-        return 'bg-red-100 text-red-700';
+        return 'bg-red-50 text-red-700 border-red-200';
       case 'moyenne':
-        return 'bg-yellow-100 text-yellow-700';
+        return 'bg-orange-50 text-orange-700 border-orange-200';
       case 'basse':
-        return 'bg-green-100 text-green-700';
+        return 'bg-green-50 text-green-700 border-green-200';
       default:
-        return 'bg-slate-100 text-slate-700';
+        return 'bg-gray-50 text-gray-700 border-gray-200';
     }
   };
 
-  const getDayAbbreviation = (dayIndex: number) => {
-    const days = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+  const getDayName = (dayIndex: number) => {
+    const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
     return days[dayIndex];
   };
 
@@ -86,32 +86,54 @@ const WeeklyPlanning = () => {
     navigate(`/project/${projectId}?taskId=${taskId}`);
   };
 
+  const weekDays = Array.from({ length: 7 }, (_, index) => {
+    const date = addDays(currentWeekStart, index);
+    const dayKey = format(date, 'yyyy-MM-dd');
+    const tasks = tasksByDay[dayKey] || [];
+    return {
+      date,
+      dayKey,
+      tasks,
+      isToday: isToday(date)
+    };
+  });
+
   if (error) {
     return (
-      <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
-        <CardContent className="p-6">
-          <div className="text-center text-red-600">
-            <p>Erreur: {error}</p>
-            <Button onClick={refreshTasks} className="mt-2">
-              Réessayer
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-6">
+            <div className="text-center">
+              <div className="text-red-600 mb-2">
+                <Clock className="h-8 w-8 mx-auto mb-2" />
+                <p className="font-medium">Erreur de chargement</p>
+                <p className="text-sm text-red-500 mt-1">{error}</p>
+              </div>
+              <Button 
+                onClick={() => window.location.reload()} 
+                variant="outline"
+                className="mt-3 border-red-200 text-red-600 hover:bg-red-100"
+              >
+                Réessayer
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
     <div className="space-y-6">
       {/* En-tête avec navigation et filtres */}
-      <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
+      <Card>
         <CardHeader>
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="flex items-center space-x-3">
-              <Calendar className="h-6 w-6 text-blue-600" />
+              <Calendar className="h-6 w-6 text-primary" />
               <div>
-                <CardTitle className="text-xl text-slate-900">Planning Hebdomadaire</CardTitle>
-                <p className="text-sm text-slate-600 mt-1">
+                <CardTitle className="text-xl">Planning Hebdomadaire</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
                   Du {format(currentWeekStart, 'dd MMMM', { locale: fr })} au{' '}
                   {format(addDays(currentWeekStart, 6), 'dd MMMM yyyy', { locale: fr })}
                 </p>
@@ -125,7 +147,7 @@ const WeeklyPlanning = () => {
                   variant="outline" 
                   size="sm"
                   onClick={goToPreviousWeek}
-                  className="h-9"
+                  disabled={isLoading}
                 >
                   <ChevronLeft className="h-4 w-4" />
                   <span className="hidden sm:inline ml-1">Précédente</span>
@@ -136,7 +158,7 @@ const WeeklyPlanning = () => {
                     variant="outline" 
                     size="sm"
                     onClick={goToCurrentWeek}
-                    className="h-9"
+                    disabled={isLoading}
                   >
                     Aujourd'hui
                   </Button>
@@ -146,7 +168,7 @@ const WeeklyPlanning = () => {
                   variant="outline" 
                   size="sm"
                   onClick={goToNextWeek}
-                  className="h-9"
+                  disabled={isLoading}
                 >
                   <span className="hidden sm:inline mr-1">Suivante</span>
                   <ChevronRight className="h-4 w-4" />
@@ -158,12 +180,12 @@ const WeeklyPlanning = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowFilters(!showFilters)}
-                className="h-9"
+                disabled={isLoading}
               >
                 <Filter className="h-4 w-4 mr-2" />
                 Filtres
                 {(selectedEmployee || selectedProject) && (
-                  <Badge className="ml-2 h-4 px-1.5 text-xs bg-blue-100 text-blue-700">
+                  <Badge variant="secondary" className="ml-2 h-4 px-1.5 text-xs">
                     {[selectedEmployee, selectedProject].filter(Boolean).length}
                   </Badge>
                 )}
@@ -171,13 +193,13 @@ const WeeklyPlanning = () => {
             </div>
           </div>
 
-          {/* Filtres dépliables */}
+          {/* Section filtres */}
           {showFilters && (
             <>
               <Separator className="my-4" />
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
-                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                  <label className="text-sm font-medium mb-2 block">
                     Employé
                   </label>
                   <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
@@ -198,7 +220,7 @@ const WeeklyPlanning = () => {
                 </div>
 
                 <div className="flex-1">
-                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                  <label className="text-sm font-medium mb-2 block">
                     Projet
                   </label>
                   <Select value={selectedProject} onValueChange={setSelectedProject}>
@@ -234,109 +256,102 @@ const WeeklyPlanning = () => {
       </Card>
 
       {/* Grille du planning */}
-      {isLoading ? (
-        <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
-          <CardContent className="p-6">
-            <div className="text-center">
-              <Clock className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-2" />
-              <p className="text-slate-600">Chargement du planning...</p>
+      <div className="relative">
+        {isLoading && (
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center">
+            <div className="flex items-center space-x-2 text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span className="text-sm">Chargement du planning...</span>
             </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
-          {Array.from({ length: 7 }, (_, dayIndex) => {
-            const dayDate = addDays(currentWeekStart, dayIndex);
-            const dayKey = format(dayDate, 'yyyy-MM-dd');
-            const dayTasks = tasksByDay[dayKey] || [];
-            const isCurrentDay = isToday(dayDate);
-
-            return (
-              <Card
-                key={dayKey}
-                className={cn(
-                  "bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm transition-all duration-200",
-                  isCurrentDay && "ring-2 ring-blue-500 bg-blue-50/50"
-                )}
-              >
-                <CardHeader className="pb-3">
-                  <div className="text-center">
-                    <div className={cn(
-                      "text-sm font-medium",
-                      isCurrentDay ? "text-blue-700" : "text-slate-600"
-                    )}>
-                      {getDayAbbreviation(dayIndex)}
-                    </div>
-                    <div className={cn(
-                      "text-lg font-bold",
-                      isCurrentDay ? "text-blue-700" : "text-slate-900"
-                    )}>
-                      {format(dayDate, 'd')}
-                    </div>
-                    <div className="text-xs text-slate-500">
-                      {format(dayDate, 'MMM', { locale: fr })}
+          </div>
+        )}
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
+          {weekDays.map((day, index) => (
+            <Card
+              key={day.dayKey}
+              className={cn(
+                "transition-all duration-200",
+                day.isToday && "ring-2 ring-primary bg-primary/5"
+              )}
+            >
+              <CardHeader className="pb-3">
+                <div className="text-center">
+                  <div className={cn(
+                    "text-sm font-medium",
+                    day.isToday ? "text-primary" : "text-muted-foreground"
+                  )}>
+                    {getDayName(index)}
+                  </div>
+                  <div className={cn(
+                    "text-lg font-bold",
+                    day.isToday ? "text-primary" : "text-foreground"
+                  )}>
+                    {format(day.date, 'd')}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {format(day.date, 'MMM', { locale: fr })}
+                  </div>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="pt-0 space-y-2">
+                {day.tasks.length === 0 ? (
+                  <div className="text-center py-4">
+                    <div className="text-muted-foreground text-xs">
+                      Aucune tâche
                     </div>
                   </div>
-                </CardHeader>
-                
-                <CardContent className="pt-0 space-y-2">
-                  {dayTasks.length === 0 ? (
-                    <div className="text-center py-4">
-                      <div className="text-slate-400 text-xs">
-                        Aucune tâche
+                ) : (
+                  day.tasks.map((task) => (
+                    <div
+                      key={task.id}
+                      className="p-3 bg-background rounded-lg border hover:shadow-sm transition-all cursor-pointer group"
+                      onClick={() => handleTaskClick(task.id, task.project_id)}
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between">
+                          <h4 className="text-sm font-medium line-clamp-2 group-hover:text-primary transition-colors">
+                            {task.title}
+                          </h4>
+                          <Eye className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2" />
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-1">
+                          <Badge variant="outline" className={cn("text-xs", getStatusVariant(task.status))}>
+                            {task.status}
+                          </Badge>
+                          <Badge variant="outline" className={cn("text-xs", getPriorityVariant(task.priority))}>
+                            {task.priority}
+                          </Badge>
+                        </div>
+
+                        {task.project && (
+                          <div className="flex items-center text-xs text-muted-foreground">
+                            <FolderOpen className="h-3 w-3 mr-1 flex-shrink-0" />
+                            <span className="truncate">{task.project.name}</span>
+                          </div>
+                        )}
+
+                        {task.assignee && (
+                          <div className="flex items-center text-xs text-muted-foreground">
+                            <User className="h-3 w-3 mr-1 flex-shrink-0" />
+                            <span className="truncate">
+                              {task.assignee.first_name && task.assignee.last_name
+                                ? `${task.assignee.first_name} ${task.assignee.last_name}`
+                                : task.assignee.username}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  ) : (
-                    dayTasks.map((task) => (
-                      <div
-                        key={task.id}
-                        className="p-3 bg-white rounded-lg border border-slate-200 hover:shadow-sm transition-shadow cursor-pointer group"
-                        onClick={() => handleTaskClick(task.id, task.project_id)}
-                      >
-                        <div className="space-y-2">
-                          <div className="flex items-start justify-between">
-                            <h4 className="text-sm font-medium text-slate-900 line-clamp-2 group-hover:text-blue-700 transition-colors">
-                              {task.title}
-                            </h4>
-                            <Eye className="h-3 w-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2" />
-                          </div>
-                          
-                          <div className="flex flex-wrap gap-1">
-                            <Badge className={cn("text-xs", getStatusColor(task.status))}>
-                              {task.status}
-                            </Badge>
-                            <Badge className={cn("text-xs", getPriorityColor(task.priority))}>
-                              {task.priority}
-                            </Badge>
-                          </div>
-
-                          {task.project && (
-                            <div className="flex items-center text-xs text-slate-600">
-                              <FolderOpen className="h-3 w-3 mr-1 flex-shrink-0" />
-                              <span className="truncate">{task.project.name}</span>
-                            </div>
-                          )}
-
-                          {task.assignee && (
-                            <div className="flex items-center text-xs text-slate-600">
-                              <User className="h-3 w-3 mr-1 flex-shrink-0" />
-                              <span className="truncate">
-                                {task.assignee.first_name && task.assignee.last_name
-                                  ? `${task.assignee.first_name} ${task.assignee.last_name}`
-                                  : task.assignee.username}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          ))}
         </div>
-      )}
+      </div>
     </div>
   );
 };
