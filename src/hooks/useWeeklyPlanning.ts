@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { format, startOfWeek, endOfWeek, addWeeks, isSameDay } from 'date-fns';
-import { fr } from 'date-fns/locale';
 
 interface WeeklyTask {
   id: string;
@@ -25,22 +24,45 @@ interface TasksByDay {
   [key: string]: WeeklyTask[];
 }
 
+interface Employee {
+  id: string;
+  username: string;
+  first_name?: string;
+  last_name?: string;
+}
+
+interface Project {
+  id: string;
+  name: string;
+}
+
 export const useWeeklyPlanning = () => {
   const [currentWeekStart, setCurrentWeekStart] = useState(() => 
     startOfWeek(new Date(), { weekStartsOn: 1 })
   );
   const [tasksByDay, setTasksByDay] = useState<TasksByDay>({});
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [projects, setProjects] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<string>('');
   const [selectedProject, setSelectedProject] = useState<string>('');
+  
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const retryCountRef = useRef(0);
 
-  const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
+  // Dates calculées avec useMemo pour éviter les recalculs
+  const weekEnd = useMemo(() => endOfWeek(currentWeekStart, { weekStartsOn: 1 }), [currentWeekStart]);
+  
+  const weekDates = useMemo(() => {
+    return {
+      start: format(currentWeekStart, 'yyyy-MM-dd'),
+      end: format(weekEnd, 'yyyy-MM-dd')
+    };
+  }, [currentWeekStart, weekEnd]);
 
   // Fonction pour initialiser la grille de la semaine
-  const initializeWeekGrid = useCallback(() => {
+  const initializeWeekGrid = useMemo(() => {
     const grid: TasksByDay = {};
     for (let i = 0; i < 7; i++) {
       const dayDate = new Date(currentWeekStart);
@@ -78,95 +100,148 @@ export const useWeeklyPlanning = () => {
     loadStaticData();
   }, []);
 
-  // Charger les tâches de la semaine
+  // Fonction de récupération des tâches avec retry automatique
   const fetchWeeklyTasks = useCallback(async () => {
+    // Annuler la requête précédente si elle existe
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+    
     setIsLoading(true);
     setError(null);
 
-    try {
-      // Initialiser la grille avec des jours vides
-      const weekGrid = initializeWeekGrid();
+    const maxRetries = 2;
 
-      // Construire la requête pour les tâches
-      let tasksQuery = supabase
-        .from('project_tasks')
-        .select(`
-          id,
-          title,
-          status,
-          priority,
-          deadline,
-          assignee_id,
-          project_id,
-          projects!inner (
-            name
-          )
-        `)
-        .gte('deadline', format(currentWeekStart, 'yyyy-MM-dd'))
-        .lte('deadline', format(weekEnd, 'yyyy-MM-dd'))
-        .not('deadline', 'is', null)
-        .order('deadline', { ascending: true });
+    const attemptFetch = async (retryCount = 0): Promise<void> => {
+      try {
+        if (signal.aborted) return;
 
-      // Appliquer les filtres
-      if (selectedEmployee) {
-        tasksQuery = tasksQuery.eq('assignee_id', selectedEmployee);
-      }
-      if (selectedProject) {
-        tasksQuery = tasksQuery.eq('project_id', selectedProject);
-      }
+        // Requête simplifiée pour les tâches sans jointure complexe
+        let tasksQuery = supabase
+          .from('project_tasks')
+          .select('id, title, status, priority, deadline, assignee_id, project_id')
+          .gte('deadline', weekDates.start)
+          .lte('deadline', weekDates.end)
+          .not('deadline', 'is', null)
+          .order('deadline', { ascending: true });
 
-      const { data: tasks, error: tasksError } = await tasksQuery;
+        // Appliquer les filtres
+        if (selectedEmployee) {
+          tasksQuery = tasksQuery.eq('assignee_id', selectedEmployee);
+        }
+        if (selectedProject) {
+          tasksQuery = tasksQuery.eq('project_id', selectedProject);
+        }
 
-      if (tasksError) throw tasksError;
+        const { data: tasks, error: tasksError } = await tasksQuery;
 
-      // Enrichir les tâches avec les données des assignés
-      if (tasks && tasks.length > 0) {
-        const assigneeIds = [...new Set(tasks.map(task => task.assignee_id).filter(Boolean))];
-        
-        let assigneesMap = new Map();
-        if (assigneeIds.length > 0) {
-          const { data: assignees, error: assigneesError } = await supabase
-            .from('app_users')
-            .select('id, username, first_name, last_name')
-            .in('id', assigneeIds);
+        if (signal.aborted) return;
+        if (tasksError) throw tasksError;
 
-          if (assigneesError) throw assigneesError;
+        // Récupérer les données des projets et assignés séparément si nécessaire
+        const weekGrid = { ...initializeWeekGrid };
+
+        if (tasks && tasks.length > 0) {
+          // Récupérer les informations des projets
+          const projectIds = [...new Set(tasks.map(task => task.project_id))];
+          const projectsMap = new Map();
           
-          assignees?.forEach(assignee => {
-            assigneesMap.set(assignee.id, assignee);
+          if (projectIds.length > 0) {
+            const { data: projectsData, error: projectsError } = await supabase
+              .from('projects')
+              .select('id, name')
+              .in('id', projectIds);
+
+            if (projectsError) throw projectsError;
+            
+            projectsData?.forEach(project => {
+              projectsMap.set(project.id, project);
+            });
+          }
+
+          // Récupérer les informations des assignés
+          const assigneeIds = [...new Set(tasks.map(task => task.assignee_id).filter(Boolean))];
+          const assigneesMap = new Map();
+          
+          if (assigneeIds.length > 0) {
+            const { data: assignees, error: assigneesError } = await supabase
+              .from('app_users')
+              .select('id, username, first_name, last_name')
+              .in('id', assigneeIds);
+
+            if (assigneesError) throw assigneesError;
+            
+            assignees?.forEach(assignee => {
+              assigneesMap.set(assignee.id, assignee);
+            });
+          }
+
+          // Distribuer les tâches par jour
+          tasks.forEach(task => {
+            if (task.deadline) {
+              const taskDate = format(new Date(task.deadline), 'yyyy-MM-dd');
+              if (weekGrid[taskDate]) {
+                const enrichedTask: WeeklyTask = {
+                  ...task,
+                  assignee: task.assignee_id ? assigneesMap.get(task.assignee_id) : undefined,
+                  project: projectsMap.get(task.project_id)
+                };
+                weekGrid[taskDate].push(enrichedTask);
+              }
+            }
           });
         }
 
-        // Distribuer les tâches par jour
-        tasks.forEach(task => {
-          if (task.deadline) {
-            const taskDate = format(new Date(task.deadline), 'yyyy-MM-dd');
-            if (weekGrid[taskDate]) {
-              const enrichedTask: WeeklyTask = {
-                ...task,
-                assignee: task.assignee_id ? assigneesMap.get(task.assignee_id) : undefined,
-                project: task.projects
-              };
-              weekGrid[taskDate].push(enrichedTask);
-            }
-          }
-        });
-      }
+        if (!signal.aborted) {
+          setTasksByDay(weekGrid);
+          retryCountRef.current = 0; // Reset retry count on success
+        }
 
-      setTasksByDay(weekGrid);
-    } catch (err) {
-      console.error('Erreur lors du chargement des tâches:', err);
-      setError('Erreur lors du chargement des tâches');
-      // En cas d'erreur, afficher quand même la grille vide
-      setTasksByDay(initializeWeekGrid());
+      } catch (err: any) {
+        if (signal.aborted) return;
+        
+        console.error('Erreur lors du chargement des tâches (tentative', retryCount + 1, '):', err);
+        
+        if (retryCount < maxRetries && !signal.aborted) {
+          // Retry après un délai progressif
+          const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s...
+          setTimeout(() => {
+            if (!signal.aborted) {
+              attemptFetch(retryCount + 1);
+            }
+          }, delay);
+        } else {
+          // Toutes les tentatives ont échoué
+          if (!signal.aborted) {
+            setError('Impossible de charger les tâches. Vérifiez votre connexion.');
+            setTasksByDay(initializeWeekGrid);
+          }
+        }
+      }
+    };
+
+    try {
+      await attemptFetch();
     } finally {
-      setIsLoading(false);
+      if (!signal.aborted) {
+        setIsLoading(false);
+      }
     }
-  }, [currentWeekStart, weekEnd, selectedEmployee, selectedProject, initializeWeekGrid]);
+  }, [weekDates.start, weekDates.end, selectedEmployee, selectedProject, initializeWeekGrid]);
 
   // Charger les tâches quand la semaine ou les filtres changent
   useEffect(() => {
     fetchWeeklyTasks();
+    
+    // Cleanup function pour annuler les requêtes en cours
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [fetchWeeklyTasks]);
 
   // Navigation entre les semaines

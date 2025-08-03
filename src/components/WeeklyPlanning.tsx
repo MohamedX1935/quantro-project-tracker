@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,11 +16,66 @@ import {
   Clock,
   Filter,
   RotateCcw,
-  Eye,
-  Loader2
+  Loader2,
+  AlertCircle,
+  Eye
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+
+// Composant TaskCard pour afficher une tâche
+const TaskCard = ({ 
+  task, 
+  onClick, 
+  getStatusVariant, 
+  getPriorityVariant 
+}: {
+  task: any;
+  onClick: () => void;
+  getStatusVariant: (status: string) => string;
+  getPriorityVariant: (priority: string) => string;
+}) => (
+  <div
+    className="p-3 bg-card rounded-lg border hover:shadow-md transition-all cursor-pointer group"
+    onClick={onClick}
+  >
+    <div className="space-y-2">
+      <div className="flex items-start justify-between">
+        <h4 className="text-sm font-medium line-clamp-2 group-hover:text-primary transition-colors">
+          {task.title}
+        </h4>
+        <Eye className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2" />
+      </div>
+      
+      <div className="flex flex-wrap gap-1">
+        <Badge variant="outline" className={cn("text-xs", getStatusVariant(task.status))}>
+          {task.status}
+        </Badge>
+        <Badge variant="outline" className={cn("text-xs", getPriorityVariant(task.priority))}>
+          {task.priority}
+        </Badge>
+      </div>
+
+      {task.project && (
+        <div className="flex items-center text-xs text-muted-foreground">
+          <FolderOpen className="h-3 w-3 mr-1 flex-shrink-0" />
+          <span className="truncate">{task.project.name}</span>
+        </div>
+      )}
+
+      {task.assignee && (
+        <div className="flex items-center text-xs text-muted-foreground">
+          <User className="h-3 w-3 mr-1 flex-shrink-0" />
+          <span className="truncate">
+            {task.assignee.first_name && task.assignee.last_name
+              ? `${task.assignee.first_name} ${task.assignee.last_name}`
+              : task.assignee.username}
+          </span>
+        </div>
+      )}
+    </div>
+  </div>
+);
 
 const WeeklyPlanning = () => {
   const navigate = useNavigate();
@@ -86,36 +141,52 @@ const WeeklyPlanning = () => {
     navigate(`/project/${projectId}?taskId=${taskId}`);
   };
 
-  const weekDays = Array.from({ length: 7 }, (_, index) => {
-    const date = addDays(currentWeekStart, index);
-    const dayKey = format(date, 'yyyy-MM-dd');
-    const tasks = tasksByDay[dayKey] || [];
-    return {
-      date,
-      dayKey,
-      tasks,
-      isToday: isToday(date)
-    };
-  });
+  // Données de la semaine mémorisées pour éviter les recalculs
+  const weekDays = useMemo(() => 
+    Array.from({ length: 7 }, (_, index) => {
+      const date = addDays(currentWeekStart, index);
+      const dayKey = format(date, 'yyyy-MM-dd');
+      const tasks = tasksByDay[dayKey] || [];
+      return {
+        date,
+        dayKey,
+        tasks,
+        isToday: isToday(date),
+        dayName: getDayName(index)
+      };
+    }), [currentWeekStart, tasksByDay, isToday]
+  );
 
+  // Calcul des totaux pour l'affichage
+  const totalTasks = useMemo(() => 
+    weekDays.reduce((total, day) => total + day.tasks.length, 0), 
+    [weekDays]
+  );
+
+  // État d'erreur avec retry automatique
   if (error) {
     return (
       <div className="space-y-6">
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-destructive/50 bg-destructive/5">
           <CardContent className="p-6">
-            <div className="text-center">
-              <div className="text-red-600 mb-2">
-                <Clock className="h-8 w-8 mx-auto mb-2" />
-                <p className="font-medium">Erreur de chargement</p>
-                <p className="text-sm text-red-500 mt-1">{error}</p>
+            <div className="text-center space-y-4">
+              <div className="flex flex-col items-center space-y-2">
+                <AlertCircle className="h-8 w-8 text-destructive" />
+                <h3 className="font-semibold text-destructive">Erreur de chargement</h3>
+                <p className="text-sm text-muted-foreground max-w-md">
+                  {error}
+                </p>
               </div>
-              <Button 
-                onClick={() => window.location.reload()} 
-                variant="outline"
-                className="mt-3 border-red-200 text-red-600 hover:bg-red-100"
-              >
-                Réessayer
-              </Button>
+              <div className="flex gap-2 justify-center">
+                <Button 
+                  onClick={() => window.location.reload()} 
+                  variant="outline"
+                  size="sm"
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Recharger la page
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -255,36 +326,53 @@ const WeeklyPlanning = () => {
         </CardHeader>
       </Card>
 
-      {/* Grille du planning */}
+      {/* Planning en slider horizontal */}
       <div className="relative">
         {isLoading && (
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center">
-            <div className="flex items-center space-x-2 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin" />
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
+            <div className="flex flex-col items-center space-y-2 text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin" />
               <span className="text-sm">Chargement du planning...</span>
             </div>
           </div>
         )}
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
-          {weekDays.map((day, index) => (
+        {/* Résumé rapide */}
+        <div className="mb-4 flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            {totalTasks === 0 ? (
+              "Aucune tâche cette semaine"
+            ) : (
+              `${totalTasks} tâche${totalTasks > 1 ? 's' : ''} planifiée${totalTasks > 1 ? 's' : ''}`
+            )}
+          </div>
+          {totalTasks > 0 && (
+            <div className="text-xs text-muted-foreground">
+              Cliquez sur une tâche pour voir les détails
+            </div>
+          )}
+        </div>
+
+        {/* Vue desktop : grille 7 colonnes */}
+        <div className="hidden lg:grid lg:grid-cols-7 gap-4">
+          {weekDays.map((day) => (
             <Card
               key={day.dayKey}
               className={cn(
-                "transition-all duration-200",
-                day.isToday && "ring-2 ring-primary bg-primary/5"
+                "transition-all duration-200 min-h-[300px]",
+                day.isToday && "ring-2 ring-primary shadow-lg"
               )}
             >
               <CardHeader className="pb-3">
-                <div className="text-center">
+                <div className="text-center space-y-1">
                   <div className={cn(
                     "text-sm font-medium",
                     day.isToday ? "text-primary" : "text-muted-foreground"
                   )}>
-                    {getDayName(index)}
+                    {day.dayName}
                   </div>
                   <div className={cn(
-                    "text-lg font-bold",
+                    "text-2xl font-bold",
                     day.isToday ? "text-primary" : "text-foreground"
                   )}>
                     {format(day.date, 'd')}
@@ -292,64 +380,95 @@ const WeeklyPlanning = () => {
                   <div className="text-xs text-muted-foreground">
                     {format(day.date, 'MMM', { locale: fr })}
                   </div>
+                  {day.tasks.length > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {day.tasks.length} tâche{day.tasks.length > 1 ? 's' : ''}
+                    </Badge>
+                  )}
                 </div>
               </CardHeader>
               
               <CardContent className="pt-0 space-y-2">
                 {day.tasks.length === 0 ? (
-                  <div className="text-center py-4">
-                    <div className="text-muted-foreground text-xs">
-                      Aucune tâche
-                    </div>
+                  <div className="text-center py-8 text-muted-foreground text-sm">
+                    Aucune tâche
                   </div>
                 ) : (
-                  day.tasks.map((task) => (
-                    <div
-                      key={task.id}
-                      className="p-3 bg-background rounded-lg border hover:shadow-sm transition-all cursor-pointer group"
-                      onClick={() => handleTaskClick(task.id, task.project_id)}
-                    >
-                      <div className="space-y-2">
-                        <div className="flex items-start justify-between">
-                          <h4 className="text-sm font-medium line-clamp-2 group-hover:text-primary transition-colors">
-                            {task.title}
-                          </h4>
-                          <Eye className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2" />
-                        </div>
-                        
-                        <div className="flex flex-wrap gap-1">
-                          <Badge variant="outline" className={cn("text-xs", getStatusVariant(task.status))}>
-                            {task.status}
-                          </Badge>
-                          <Badge variant="outline" className={cn("text-xs", getPriorityVariant(task.priority))}>
-                            {task.priority}
-                          </Badge>
-                        </div>
-
-                        {task.project && (
-                          <div className="flex items-center text-xs text-muted-foreground">
-                            <FolderOpen className="h-3 w-3 mr-1 flex-shrink-0" />
-                            <span className="truncate">{task.project.name}</span>
-                          </div>
-                        )}
-
-                        {task.assignee && (
-                          <div className="flex items-center text-xs text-muted-foreground">
-                            <User className="h-3 w-3 mr-1 flex-shrink-0" />
-                            <span className="truncate">
-                              {task.assignee.first_name && task.assignee.last_name
-                                ? `${task.assignee.first_name} ${task.assignee.last_name}`
-                                : task.assignee.username}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {day.tasks.map((task) => (
+                      <TaskCard 
+                        key={task.id} 
+                        task={task} 
+                        onClick={() => handleTaskClick(task.id, task.project_id)}
+                        getStatusVariant={getStatusVariant}
+                        getPriorityVariant={getPriorityVariant}
+                      />
+                    ))}
+                  </div>
                 )}
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        {/* Vue mobile/tablet : slider horizontal */}
+        <div className="lg:hidden">
+          <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory">
+            {weekDays.map((day) => (
+              <Card
+                key={day.dayKey}
+                className={cn(
+                  "flex-shrink-0 w-72 transition-all duration-200 snap-start",
+                  day.isToday && "ring-2 ring-primary shadow-lg"
+                )}
+              >
+                <CardHeader className="pb-3">
+                  <div className="text-center space-y-1">
+                    <div className={cn(
+                      "text-sm font-medium",
+                      day.isToday ? "text-primary" : "text-muted-foreground"
+                    )}>
+                      {day.dayName}
+                    </div>
+                    <div className={cn(
+                      "text-2xl font-bold",
+                      day.isToday ? "text-primary" : "text-foreground"
+                    )}>
+                      {format(day.date, 'd')}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {format(day.date, 'MMM yyyy', { locale: fr })}
+                    </div>
+                    {day.tasks.length > 0 && (
+                      <Badge variant="secondary" className="text-xs">
+                        {day.tasks.length} tâche{day.tasks.length > 1 ? 's' : ''}
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="pt-0 space-y-2">
+                  {day.tasks.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground text-sm">
+                      Aucune tâche
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {day.tasks.map((task) => (
+                        <TaskCard 
+                          key={task.id} 
+                          task={task} 
+                          onClick={() => handleTaskClick(task.id, task.project_id)}
+                          getStatusVariant={getStatusVariant}
+                          getPriorityVariant={getPriorityVariant}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </div>
     </div>
