@@ -105,12 +105,17 @@ export const useWeeklyPlanning = () => {
 
       // Récupérer les informations des assignés
       const assigneeIds = [...new Set(tasks?.map(task => task.assignee_id).filter(Boolean))];
-      const { data: assignees, error: assigneesError } = await supabase
-        .from('app_users')
-        .select('id, username, first_name, last_name')
-        .in('id', assigneeIds);
+      let assignees = [];
+      
+      if (assigneeIds.length > 0) {
+        const { data: assigneesData, error: assigneesError } = await supabase
+          .from('app_users')
+          .select('id, username, first_name, last_name')
+          .in('id', assigneeIds);
 
-      if (assigneesError) throw assigneesError;
+        if (assigneesError) throw assigneesError;
+        assignees = assigneesData || [];
+      }
 
       // Mapper les assignés aux tâches
       const tasksWithAssignees = tasks?.map(task => ({
