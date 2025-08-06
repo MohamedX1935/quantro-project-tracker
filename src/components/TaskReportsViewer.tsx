@@ -169,7 +169,7 @@ const TaskReportsViewer = () => {
         new Paragraph({
           children: [
             new TextRun({ text: "Temps consacré : ", bold: true }),
-            new TextRun({ text: report.time_spent ? `${report.time_spent} heures` : 'Non renseigné' }),
+            new TextRun({ text: (report.time_spent !== null && report.time_spent !== undefined) ? `${report.time_spent} heures` : 'Non renseigné' }),
           ],
           spacing: { after: 100 },
         }),
@@ -177,7 +177,7 @@ const TaskReportsViewer = () => {
         new Paragraph({
           children: [
             new TextRun({ text: "Auto-évaluation : ", bold: true }),
-            new TextRun({ text: report.quality_rating || 'Non renseignée' }),
+            new TextRun({ text: (report.quality_rating && report.quality_rating.trim() !== '') ? report.quality_rating : 'Non renseignée' }),
           ],
           spacing: { after: 300 },
         }),
@@ -359,7 +359,7 @@ const TaskReportsViewer = () => {
 {\\b Date :} ${new Date(report.created_at).toLocaleDateString('fr-FR')}\\par
 {\\b Localisation :} ${report.location || 'Non spécifiée'}\\par
 {\\b Temps passé :} ${report.time_spent ? `${report.time_spent} heures` : 'Non renseigné'}\\par
-{\\b Qualité :} ${report.quality_rating || 'Non évaluée'}\\par
+{\\b Qualité :} ${(report.quality_rating && report.quality_rating.trim() !== '') ? report.quality_rating : 'Non évaluée'}\\par
 \\par
 {\\b\\fs28 RÉSUMÉ DES TRAVAUX EFFECTUÉS\\par}
 \\par
@@ -450,13 +450,13 @@ ${report.attachments.map((attachment: any) => `• ${attachment.name || attachme
                             Projet: <strong>{report.task?.project?.name || 'Non défini'}</strong>
                           </div>
                           <div className="text-sm text-slate-600">
-                            Temps passé: <strong>{report.time_spent ? `${report.time_spent}h` : 'Non renseigné'}</strong>
+                            Temps passé: <strong>{(report.time_spent !== null && report.time_spent !== undefined) ? `${report.time_spent}h` : 'Non renseigné'}</strong>
                           </div>
                         </div>
                         
                         <div className="space-y-1">
                           <div className="text-sm text-slate-600">
-                            Qualité: <strong>{report.quality_rating || 'Non évaluée'}</strong>
+                            Qualité: <strong>{(report.quality_rating && report.quality_rating.trim() !== '') ? report.quality_rating : 'Non évaluée'}</strong>
                           </div>
                           <div className="flex items-center text-sm text-slate-600">
                             <Calendar className="w-4 h-4 mr-1" />

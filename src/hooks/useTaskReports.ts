@@ -151,10 +151,10 @@ export const useTaskReports = () => {
         difficulties: reportData.difficulties || null,
         solutions: reportData.solutions || null,
         recommendations: reportData.recommendations || null,
-        time_spent: reportData.time_spent && !isNaN(parseFloat(reportData.time_spent.toString())) 
+        time_spent: reportData.time_spent && reportData.time_spent.toString().trim() !== '' && !isNaN(parseFloat(reportData.time_spent.toString())) 
           ? parseFloat(reportData.time_spent.toString()) 
           : null,
-        quality_rating: reportData.quality_rating || null,
+        quality_rating: reportData.quality_rating && reportData.quality_rating.trim() !== '' ? reportData.quality_rating : null,
         location: reportData.location || null,
         attachments: reportData.attachments || [],
         generated_report: generatedReport

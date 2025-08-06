@@ -94,7 +94,7 @@ const TaskReportDialog = ({ task, open, onOpenChange, onComplete }: TaskReportDi
         difficulties,
         solutions,
         recommendations,
-        time_spent: timeSpent,
+        time_spent: timeSpent && timeSpent.trim() !== '' ? parseFloat(timeSpent) : null,
         quality_rating: quality,
         location,
         attachments: uploadedFiles

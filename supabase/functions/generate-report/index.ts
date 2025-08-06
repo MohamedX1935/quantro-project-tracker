@@ -27,8 +27,8 @@ Tâche : ${task_title || 'Non spécifiée'}
 Projet : ${project_name || 'Non spécifié'}
 Employé : ${employee_name || 'Non spécifié'}
 Localisation : ${location || 'Non spécifiée'}
-Temps consacré : ${time_spent ? `${time_spent} heures` : 'Non renseigné'}
-Auto-évaluation : ${quality_rating || 'Non renseignée'}
+Temps consacré : ${(time_spent !== null && time_spent !== undefined && time_spent !== '') ? `${time_spent} heures` : 'Non renseigné'}
+Auto-évaluation : ${(quality_rating && quality_rating.trim() !== '') ? quality_rating : 'Non renseignée'}
 
 RÉSUMÉ DES TRAVAUX
 ${summary}
@@ -182,8 +182,8 @@ Tâche : ${task_title || 'Non spécifiée'}
 Projet : ${project_name || 'Non spécifié'}
 Employé : ${employee_name || 'Non spécifié'}
 Localisation : ${location || 'Non spécifiée'}
-Temps consacré : ${time_spent ? `${time_spent} heures` : 'Non renseigné'}
-Auto-évaluation : ${quality_rating || 'Non renseignée'}
+Temps consacré : ${(time_spent !== null && time_spent !== undefined && time_spent !== '') ? `${time_spent} heures` : 'Non renseigné'}
+Auto-évaluation : ${(quality_rating && quality_rating.trim() !== '') ? quality_rating : 'Non renseignée'}
 
 RÉSUMÉ DES TRAVAUX
 ${summary}
