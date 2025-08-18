@@ -10,6 +10,7 @@ import FilterDialog from "./FilterDialog";
 import AssignEmployeeDialog from "./AssignEmployeeDialog";
 import EmployeeDetailsDialog from "./EmployeeDetailsDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAllEmployeesStats } from "@/hooks/useEmployeeStats";
 
 const TeamDashboard = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -19,9 +20,13 @@ const TeamDashboard = () => {
   const [showEmployeeDetails, setShowEmployeeDetails] = useState(false);
 
   const { users } = useAuth();
+  const { employeesStats } = useAllEmployeesStats();
 
   // Filtrer uniquement les employés (pas les admins ni root)
   const employees = users.filter(user => user.role === 'employee');
+  
+  // Calculer le nombre d'employés actifs
+  const activeEmployeesCount = Object.values(employeesStats).filter(stats => stats.isActive).length;
 
   const filteredEmployees = employees.filter(employee => {
     const matchesSearch = employee.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -76,8 +81,8 @@ const TeamDashboard = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-slate-900">{employees.length}</div>
-            <p className="text-xs text-slate-500">En service</p>
+            <div className="text-2xl font-bold text-slate-900">{activeEmployeesCount}</div>
+            <p className="text-xs text-slate-500">Avec tâches en cours</p>
           </CardContent>
         </Card>
 
@@ -201,9 +206,11 @@ const TeamDashboard = () => {
                                 : employee.username
                               }
                             </h4>
-                            <Badge className={`text-xs ${getStatusColor("Actif")}`}>
-                              Actif
-                            </Badge>
+                            {employeesStats[employee.username]?.isActive && (
+                              <Badge className={`text-xs ${getStatusColor("Actif")}`}>
+                                Actif
+                              </Badge>
+                            )}
                           </div>
                           
                           <p className="text-sm text-slate-600 mb-1">Employé</p>
@@ -252,9 +259,11 @@ const TeamDashboard = () => {
                                 : employee.username
                               }
                             </h4>
-                            <Badge className={`text-xs ${getStatusColor("Actif")}`}>
-                              Actif
-                            </Badge>
+                            {employeesStats[employee.username]?.isActive && (
+                              <Badge className={`text-xs ${getStatusColor("Actif")}`}>
+                                Actif
+                              </Badge>
+                            )}
                           </div>
                           <div className="flex items-center gap-4 text-sm text-slate-600">
                             <span>Employé</span>
