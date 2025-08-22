@@ -194,31 +194,82 @@ export const useAllEmployeesStats = () => {
 
       if (!employees) return;
 
-      // Récupérer les tâches actives pour déterminer quels employés sont actifs
-      const { data: activeTasks, error: activeTasksError } = await supabase
+      // Récupérer toutes les tâches avec les projets associés
+      const { data: allTasks, error: tasksError } = await supabase
         .from('project_tasks')
-        .select('assignee_id')
-        .neq('status', 'Terminé')
-        .neq('closed_by_admin', true);
+        .select(`
+          *,
+          projects!inner (
+            id,
+            name,
+            description,
+            deadline,
+            priority,
+            location
+          )
+        `);
 
-      if (activeTasksError) throw activeTasksError;
+      if (tasksError) throw tasksError;
 
-      // Créer un Set des employés actifs
-      const activeEmployeeIds = new Set(
-        activeTasks?.map(task => task.assignee_id).filter(Boolean)
-      );
+      // Récupérer tous les rapports de tâches
+      const { data: allReports, error: reportsError } = await supabase
+        .from('task_reports')
+        .select('employee_id, time_spent');
+
+      if (reportsError) throw reportsError;
 
       // Construire les statistiques pour chaque employé
       const stats: Record<string, EmployeeStats> = {};
       
       for (const employee of employees) {
-        const isActive = activeEmployeeIds.has(employee.username);
+        // Tâches de cet employé
+        const employeeTasks = allTasks?.filter(task => task.assignee_id === employee.username) || [];
+        
+        // Tâches actives (non terminées et non fermées par admin)
+        const activeTasks = employeeTasks.filter(task => 
+          task.status !== 'Terminé' && !task.closed_by_admin
+        );
+        
+        // Tâches terminées
+        const completedTasks = employeeTasks.filter(task => task.status === 'Terminé');
+        
+        // Projets uniques assignés
+        const uniqueProjects = new Map();
+        employeeTasks.forEach(task => {
+          const project = task.projects;
+          if (project && !uniqueProjects.has(project.id)) {
+            uniqueProjects.set(project.id, {
+              id: project.id,
+              name: project.name,
+              description: project.description,
+              deadline: project.deadline,
+              priority: project.priority,
+              location: project.location
+            });
+          }
+        });
+        
+        // Heures totales de cet employé
+        const employeeReports = allReports?.filter(report => report.employee_id === employee.username) || [];
+        const totalHours = employeeReports.reduce((total, report) => {
+          const timeSpent = parseFloat(report.time_spent?.toString() || '0');
+          return total + (isNaN(timeSpent) ? 0 : timeSpent);
+        }, 0);
+
         stats[employee.username] = {
-          isActive,
-          assignedProjects: [],
-          completedTasks: [],
-          totalHours: 0,
-          activeTasksCount: 0
+          isActive: activeTasks.length > 0,
+          assignedProjects: Array.from(uniqueProjects.values()),
+          completedTasks: completedTasks.map(task => ({
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            status: task.status,
+            deadline: task.deadline,
+            project_name: task.projects?.name || 'Projet supprimé',
+            project_id: task.project_id
+          })),
+          totalHours,
+          activeTasksCount: activeTasks.length
         };
       }
 

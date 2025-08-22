@@ -11,6 +11,7 @@ import AssignEmployeeDialog from "./AssignEmployeeDialog";
 import EmployeeDetailsDialog from "./EmployeeDetailsDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAllEmployeesStats } from "@/hooks/useEmployeeStats";
+import { useAdminStats } from "@/hooks/useAdminStats";
 
 const TeamDashboard = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -20,12 +21,13 @@ const TeamDashboard = () => {
   const [showEmployeeDetails, setShowEmployeeDetails] = useState(false);
 
   const { users } = useAuth();
-  const { employeesStats } = useAllEmployeesStats();
+  const { employeesStats, isLoading: employeesLoading } = useAllEmployeesStats();
+  const { stats: adminStats, isLoading: adminLoading } = useAdminStats();
 
   // Filtrer uniquement les employés (pas les admins ni root)
   const employees = users.filter(user => user.role === 'employee');
   
-  // Calculer le nombre d'employés actifs
+  // Calculer le nombre d'employés actifs depuis les stats individuelles
   const activeEmployeesCount = Object.values(employeesStats).filter(stats => stats.isActive).length;
 
   const filteredEmployees = employees.filter(employee => {
@@ -81,7 +83,9 @@ const TeamDashboard = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-slate-900">{activeEmployeesCount}</div>
+            <div className="text-2xl font-bold text-slate-900">
+              {employeesLoading ? '...' : activeEmployeesCount}
+            </div>
             <p className="text-xs text-slate-500">Avec tâches en cours</p>
           </CardContent>
         </Card>
@@ -109,7 +113,9 @@ const TeamDashboard = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-slate-900">0</div>
+            <div className="text-2xl font-bold text-slate-900">
+              {adminLoading ? '...' : adminStats.activeProjects}
+            </div>
             <p className="text-xs text-slate-500">Avec équipes</p>
           </CardContent>
         </Card>

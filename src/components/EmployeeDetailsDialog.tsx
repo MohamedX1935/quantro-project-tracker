@@ -22,7 +22,7 @@ const EmployeeDetailsDialog = ({ employee, open, onOpenChange }: EmployeeDetails
   
   if (!employee) return null;
 
-  const { stats, isLoading } = useEmployeeStats(employee.username);
+  const { stats, isLoading } = useEmployeeStats(employee?.username);
 
   const getStatusColor = (status: string = "Actif") => {
     switch (status) {
@@ -95,7 +95,7 @@ const EmployeeDetailsDialog = ({ employee, open, onOpenChange }: EmployeeDetails
 
           {/* Statistiques */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setShowProjectsList(true)}>
+            <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => stats.assignedProjects.length > 0 && setShowProjectsList(true)}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Projets Assignés</CardTitle>
                 <FolderOpen className="h-4 w-4 text-blue-600" />
@@ -104,11 +104,13 @@ const EmployeeDetailsDialog = ({ employee, open, onOpenChange }: EmployeeDetails
                 <div className="text-2xl font-bold">
                   {isLoading ? '...' : stats.assignedProjects.length}
                 </div>
-                <p className="text-xs text-slate-500">Cliquez pour voir la liste</p>
+                <p className="text-xs text-slate-500">
+                  {stats.assignedProjects.length > 0 ? 'Cliquez pour voir la liste' : 'Aucun projet assigné'}
+                </p>
               </CardContent>
             </Card>
 
-            <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setShowTasksList(true)}>
+            <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => stats.completedTasks.length > 0 && setShowTasksList(true)}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Tâches Terminées</CardTitle>
                 <CheckSquare className="h-4 w-4 text-green-600" />
@@ -117,7 +119,9 @@ const EmployeeDetailsDialog = ({ employee, open, onOpenChange }: EmployeeDetails
                 <div className="text-2xl font-bold">
                   {isLoading ? '...' : stats.completedTasks.length}
                 </div>
-                <p className="text-xs text-slate-500">Cliquez pour voir la liste</p>
+                <p className="text-xs text-slate-500">
+                  {stats.completedTasks.length > 0 ? 'Cliquez pour voir la liste' : 'Aucune tâche terminée'}
+                </p>
               </CardContent>
             </Card>
 
