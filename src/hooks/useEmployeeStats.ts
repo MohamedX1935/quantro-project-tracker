@@ -223,7 +223,7 @@ export const useAllEmployeesStats = () => {
       
       for (const employee of employees) {
         // Tâches de cet employé
-        const employeeTasks = allTasks?.filter(task => task.assignee_id === employee.username) || [];
+        const employeeTasks = allTasks?.filter(task => task.assignee_id === employee.id) || [];
         
         // Tâches actives (non terminées et non fermées par admin)
         const activeTasks = employeeTasks.filter(task => 
@@ -250,13 +250,13 @@ export const useAllEmployeesStats = () => {
         });
         
         // Heures totales de cet employé
-        const employeeReports = allReports?.filter(report => report.employee_id === employee.username) || [];
+        const employeeReports = allReports?.filter(report => report.employee_id === employee.id) || [];
         const totalHours = employeeReports.reduce((total, report) => {
           const timeSpent = parseFloat(report.time_spent?.toString() || '0');
           return total + (isNaN(timeSpent) ? 0 : timeSpent);
         }, 0);
 
-        stats[employee.username] = {
+        stats[employee.id] = {
           isActive: activeTasks.length > 0,
           assignedProjects: Array.from(uniqueProjects.values()),
           completedTasks: completedTasks.map(task => ({
@@ -268,9 +268,9 @@ export const useAllEmployeesStats = () => {
             project_name: task.projects?.name || 'Projet supprimé',
             project_id: task.project_id
           })),
-          totalHours,
-          activeTasksCount: activeTasks.length
-        };
+            totalHours,
+            activeTasksCount: activeTasks.length
+          };
       }
 
       setEmployeesStats(stats);

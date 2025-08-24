@@ -85,7 +85,7 @@ export const useAdminStats = () => {
       
       // Calculer les employés actifs (ceux qui ont des tâches assignées)
       const activeEmployees = new Set(
-        tasks?.filter(t => t.assignee_id && t.status !== 'Terminé')
+        tasks?.filter(t => t.assignee_id && t.status !== 'Terminé' && !t.closed_by_admin)
           .map(t => t.assignee_id)
       ).size;
 

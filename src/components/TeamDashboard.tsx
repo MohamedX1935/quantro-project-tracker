@@ -212,7 +212,7 @@ const TeamDashboard = () => {
                                 : employee.username
                               }
                             </h4>
-                            {employeesStats[employee.username]?.isActive && (
+                            {employeesStats[employee.id]?.isActive && (
                               <Badge className={`text-xs ${getStatusColor("Actif")}`}>
                                 Actif
                               </Badge>
@@ -265,7 +265,7 @@ const TeamDashboard = () => {
                                 : employee.username
                               }
                             </h4>
-                            {employeesStats[employee.username]?.isActive && (
+                            {employeesStats[employee.id]?.isActive && (
                               <Badge className={`text-xs ${getStatusColor("Actif")}`}>
                                 Actif
                               </Badge>

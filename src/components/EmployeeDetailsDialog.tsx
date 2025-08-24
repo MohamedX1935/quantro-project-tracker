@@ -22,7 +22,7 @@ const EmployeeDetailsDialog = ({ employee, open, onOpenChange }: EmployeeDetails
   
   if (!employee) return null;
 
-  const { stats, isLoading } = useEmployeeStats(employee?.username);
+  const { stats, isLoading } = useEmployeeStats(employee?.id);
 
   const getStatusColor = (status: string = "Actif") => {
     switch (status) {
@@ -88,7 +88,7 @@ const EmployeeDetailsDialog = ({ employee, open, onOpenChange }: EmployeeDetails
               )}
               <div className="flex items-center text-sm">
                 <Calendar className="w-4 h-4 mr-3 text-slate-500" />
-                <span>Créé le: {new Date(employee.created_at || Date.now()).toLocaleDateString('fr-FR')}</span>
+                <span>Créé le: {new Date(employee.createdAt || Date.now()).toLocaleDateString('fr-FR')}</span>
               </div>
             </CardContent>
           </Card>
