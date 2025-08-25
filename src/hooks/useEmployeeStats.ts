@@ -44,103 +44,95 @@ export const useEmployeeStats = (employeeId?: string) => {
     setError(null);
 
     try {
-      // 1. Vérifier si l'employé a des tâches actives pour déterminer son statut
-      const { data: activeTasks, error: activeTasksError } = await supabase
-        .from('project_tasks')
-        .select('*')
-        .eq('assignee_id', empId)
-        .neq('status', 'Terminé')
-        .neq('closed_by_admin', true);
-
-      if (activeTasksError) throw activeTasksError;
-
-      const isActive = (activeTasks?.length || 0) > 0;
-      const activeTasksCount = activeTasks?.length || 0;
-
-      // 2. Récupérer les projets assignés à l'employé
-      const { data: assignedProjectsData, error: projectsError } = await supabase
-        .from('project_tasks')
-        .select(`
-          project_id,
-          projects!inner (
-            id,
-            name,
-            description,
-            deadline,
-            priority,
-            location
-          )
-        `)
-        .eq('assignee_id', empId);
-
-      if (projectsError) throw projectsError;
-
-      // Extraire les projets uniques
-      const uniqueProjects = new Map();
-      assignedProjectsData?.forEach(item => {
-        const project = item.projects;
-        if (project && !uniqueProjects.has(project.id)) {
-          uniqueProjects.set(project.id, {
-            id: project.id,
-            name: project.name,
-            description: project.description,
-            deadline: project.deadline,
-            priority: project.priority,
-            location: project.location
-          });
-        }
-      });
-      const assignedProjects = Array.from(uniqueProjects.values());
-
-      // 3. Récupérer les tâches terminées
-      const { data: completedTasksData, error: completedTasksError } = await supabase
+      // 1. Récupérer toutes les tâches de l'employé
+      const { data: allTasks, error: tasksError } = await supabase
         .from('project_tasks')
         .select(`
           id,
+          project_id,
           title,
           description,
           status,
           deadline,
-          project_id,
-          projects!inner (
-            name
-          )
+          priority,
+          closed_by_admin
         `)
-        .eq('assignee_id', empId)
-        .eq('status', 'Terminé');
+        .eq('assignee_id', empId);
 
-      if (completedTasksError) throw completedTasksError;
+      if (tasksError) {
+        throw new Error('Erreur lors de la récupération des tâches');
+      }
 
-      const completedTasks = completedTasksData?.map(task => ({
+      // 2. Extraire les project_id uniques et récupérer les projets
+      const projectIds = [...new Set(allTasks?.map(task => task.project_id).filter(Boolean) || [])];
+      let projects: any[] = [];
+      
+      if (projectIds.length > 0) {
+        const { data: projectsData, error: projectsError } = await supabase
+          .from('projects')
+          .select('id, name, description, deadline, priority, location')
+          .in('id', projectIds);
+
+        if (projectsError) {
+          console.error('Erreur lors de la récupération des projets:', projectsError);
+        } else {
+          projects = projectsData || [];
+        }
+      }
+
+      // 3. Construire la map des projets par ID
+      const projectsById = new Map(projects.map(project => [project.id, project]));
+      
+      // 4. Construire les projets assignés (uniques)
+      const uniqueProjectIds = new Set(allTasks?.map(task => task.project_id).filter(Boolean) || []);
+      const assignedProjects = Array.from(uniqueProjectIds)
+        .map(projectId => projectsById.get(projectId))
+        .filter(Boolean);
+
+      // 5. Construire les tâches terminées avec les noms des projets
+      const completedTasks = allTasks?.filter(task => task.status === 'Terminé').map(task => ({
         id: task.id,
         title: task.title,
         description: task.description,
         status: task.status,
         deadline: task.deadline,
-        project_name: task.projects?.name || 'Projet supprimé',
+        project_name: projectsById.get(task.project_id)?.name || 'Projet supprimé',
         project_id: task.project_id
       })) || [];
 
-      // 4. Calculer le total des heures passées
+      // 6. Calculer les tâches actives
+      const activeTasks = allTasks?.filter(task => 
+        task.status !== 'Terminé' && !task.closed_by_admin
+      ) || [];
+
+      const activeTasksCount = activeTasks.length;
+      const isActive = activeTasksCount > 0;
+
+      // 7. Récupérer les heures totales depuis les rapports de tâches
       const { data: reportsData, error: reportsError } = await supabase
         .from('task_reports')
         .select('time_spent')
         .eq('employee_id', empId);
 
-      if (reportsError) throw reportsError;
+      if (reportsError) {
+        console.error('Erreur lors de la récupération des rapports:', reportsError);
+      }
 
       const totalHours = reportsData?.reduce((total, report) => {
         const timeSpent = parseFloat(report.time_spent?.toString() || '0');
         return total + (isNaN(timeSpent) ? 0 : timeSpent);
       }, 0) || 0;
 
-      setStats({
+      // 8. Construire l'objet des statistiques
+      const stats: EmployeeStats = {
         isActive,
         assignedProjects,
         completedTasks,
         totalHours,
         activeTasksCount
-      });
+      };
+
+      setStats(stats);
 
     } catch (error) {
       console.error('Error fetching employee stats:', error);
@@ -194,29 +186,51 @@ export const useAllEmployeesStats = () => {
 
       if (!employees) return;
 
-      // Récupérer toutes les tâches avec les projets associés
+      // Récupérer toutes les tâches
       const { data: allTasks, error: tasksError } = await supabase
         .from('project_tasks')
         .select(`
-          *,
-          projects!inner (
-            id,
-            name,
-            description,
-            deadline,
-            priority,
-            location
-          )
+          id,
+          project_id,
+          assignee_id,
+          title,
+          description,
+          status,
+          deadline,
+          priority,
+          closed_by_admin
         `);
 
       if (tasksError) throw tasksError;
+
+      // Récupérer tous les projets nécessaires
+      const allProjectIds = [...new Set(allTasks?.map(task => task.project_id).filter(Boolean) || [])];
+      let allProjects: any[] = [];
+      
+      if (allProjectIds.length > 0) {
+        const { data: projectsData, error: projectsError } = await supabase
+          .from('projects')
+          .select('id, name, description, deadline, priority, location')
+          .in('id', allProjectIds);
+
+        if (projectsError) {
+          console.error('Erreur lors de la récupération des projets:', projectsError);
+        } else {
+          allProjects = projectsData || [];
+        }
+      }
+
+      // Créer une map des projets par ID
+      const projectsById = new Map(allProjects.map(project => [project.id, project]));
 
       // Récupérer tous les rapports de tâches
       const { data: allReports, error: reportsError } = await supabase
         .from('task_reports')
         .select('employee_id, time_spent');
 
-      if (reportsError) throw reportsError;
+      if (reportsError) {
+        console.error('Erreur lors de la récupération des rapports:', reportsError);
+      }
 
       // Construire les statistiques pour chaque employé
       const stats: Record<string, EmployeeStats> = {};
@@ -230,24 +244,22 @@ export const useAllEmployeesStats = () => {
           task.status !== 'Terminé' && !task.closed_by_admin
         );
         
-        // Tâches terminées
-        const completedTasks = employeeTasks.filter(task => task.status === 'Terminé');
+        // Projets uniques assignés à cet employé
+        const uniqueProjectIds = new Set(employeeTasks.map(task => task.project_id).filter(Boolean));
+        const assignedProjects = Array.from(uniqueProjectIds)
+          .map(projectId => projectsById.get(projectId))
+          .filter(Boolean);
         
-        // Projets uniques assignés
-        const uniqueProjects = new Map();
-        employeeTasks.forEach(task => {
-          const project = task.projects;
-          if (project && !uniqueProjects.has(project.id)) {
-            uniqueProjects.set(project.id, {
-              id: project.id,
-              name: project.name,
-              description: project.description,
-              deadline: project.deadline,
-              priority: project.priority,
-              location: project.location
-            });
-          }
-        });
+        // Tâches terminées avec nom du projet
+        const completedTasks = employeeTasks.filter(task => task.status === 'Terminé').map(task => ({
+          id: task.id,
+          title: task.title,
+          description: task.description,
+          status: task.status,
+          deadline: task.deadline,
+          project_name: projectsById.get(task.project_id)?.name || 'Projet supprimé',
+          project_id: task.project_id
+        }));
         
         // Heures totales de cet employé
         const employeeReports = allReports?.filter(report => report.employee_id === employee.id) || [];
@@ -258,19 +270,11 @@ export const useAllEmployeesStats = () => {
 
         stats[employee.id] = {
           isActive: activeTasks.length > 0,
-          assignedProjects: Array.from(uniqueProjects.values()),
-          completedTasks: completedTasks.map(task => ({
-            id: task.id,
-            title: task.title,
-            description: task.description,
-            status: task.status,
-            deadline: task.deadline,
-            project_name: task.projects?.name || 'Projet supprimé',
-            project_id: task.project_id
-          })),
-            totalHours,
-            activeTasksCount: activeTasks.length
-          };
+          assignedProjects,
+          completedTasks,
+          totalHours,
+          activeTasksCount: activeTasks.length
+        };
       }
 
       setEmployeesStats(stats);
